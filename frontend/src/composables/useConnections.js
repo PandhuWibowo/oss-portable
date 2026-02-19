@@ -71,6 +71,30 @@ export function useConnections() {
     }
   }
 
+  async function updateConnection(provider, id, form) {
+    saving.value = true
+    clearMessages()
+    try {
+      const endpoint = provider === 'gcp'
+        ? `/api/gcp/connection/${id}`
+        : `/api/aws/connection/${id}`
+      const res = await fetch(endpoint, {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(form),
+      })
+      if (!res.ok) { error.value = 'Update failed: ' + await res.text(); return false }
+      notice.value = 'Connection updated ✓'
+      await fetchConnections()
+      return true
+    } catch (err) {
+      error.value = 'Error: ' + err.message
+      return false
+    } finally {
+      saving.value = false
+    }
+  }
+
   async function removeConnection(provider, id) {
     clearMessages()
     try {
@@ -82,17 +106,17 @@ export function useConnections() {
     }
   }
 
-  // ── bucket operations ─────────────────────────────────────────
+  // ── bucket browsing ──────────────────────────────────────────
 
-  async function browseObjects(provider, bucket, credentials, prefix = '') {
+  async function browseObjects(provider, bucket, credentials, prefix = '', pageToken = '') {
     const endpoint = provider === 'gcp' ? '/api/gcp/bucket/browse' : '/api/aws/bucket/browse'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ bucket, credentials, prefix }),
+      body:    JSON.stringify({ bucket, credentials, prefix, page_token: pageToken }),
     })
     if (!res.ok) throw new Error(await res.text())
-    return res.json() // { prefix, entries: [...] }
+    return res.json() // { prefix, entries, next_page_token }
   }
 
   async function getDownloadURL(provider, bucket, credentials, object) {
@@ -112,6 +136,16 @@ export function useConnections() {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ bucket, credentials, object }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+  }
+
+  async function copyObject(provider, bucket, credentials, source, destination, deleteSource = true) {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/copy' : '/api/aws/bucket/copy'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials, source, destination, delete_source: deleteSource }),
     })
     if (!res.ok) throw new Error(await res.text())
   }
@@ -141,7 +175,33 @@ export function useConnections() {
     return res.json() // { object_count, total_size, truncated }
   }
 
-  // kept for compat
+  // ── metadata ─────────────────────────────────────────────────
+
+  async function getObjectMetadata(provider, bucket, credentials, object) {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/metadata' : '/api/aws/bucket/metadata'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials, object }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json() // { content_type, cache_control, metadata, size, updated, etag, md5? }
+  }
+
+  async function updateObjectMetadata(provider, bucket, credentials, object, patch) {
+    const endpoint = provider === 'gcp'
+      ? '/api/gcp/bucket/metadata/update'
+      : '/api/aws/bucket/metadata/update'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials, object, ...patch }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+  }
+
+  // ── compat (flat listing) ────────────────────────────────────
+
   async function listObjects(provider, bucket, credentials) {
     const endpoint = provider === 'gcp' ? '/api/gcp/bucket/objects' : '/api/aws/bucket/objects'
     const res = await fetch(endpoint, {
@@ -156,7 +216,10 @@ export function useConnections() {
 
   return {
     connections, loading, testing, saving, error, notice,
-    fetchConnections, testConnection, saveConnection, removeConnection, clearMessages,
-    browseObjects, getDownloadURL, deleteObject, uploadObjects, getBucketStats, listObjects,
+    fetchConnections, testConnection, saveConnection, updateConnection,
+    removeConnection, clearMessages,
+    browseObjects, getDownloadURL, deleteObject, copyObject,
+    uploadObjects, getBucketStats, listObjects,
+    getObjectMetadata, updateObjectMetadata,
   }
 }

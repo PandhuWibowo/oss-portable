@@ -17,32 +17,38 @@ func main() {
 	mux := http.NewServeMux()
 
 	// ── GCP connections ───────────────────────────────────────────
-	mux.HandleFunc("/api/gcp/connections",        middleware.CORS(handlers.ListGCP))
-	mux.HandleFunc("/api/gcp/connection",         middleware.CORS(handlers.CreateGCP))
-	mux.HandleFunc("/api/gcp/connection/",        middleware.CORS(handlers.DeleteGCPConn))
-	mux.HandleFunc("/api/gcp/test",               middleware.CORS(handlers.TestGCP))
+	mux.HandleFunc("/api/gcp/connections",   middleware.CORS(handlers.ListGCP))
+	mux.HandleFunc("/api/gcp/connection",    middleware.CORS(handlers.CreateGCP))
+	mux.HandleFunc("/api/gcp/connection/",   middleware.CORS(handlers.GCPConnByID))
+	mux.HandleFunc("/api/gcp/test",          middleware.CORS(handlers.TestGCP))
 
 	// ── GCP bucket operations ─────────────────────────────────────
-	mux.HandleFunc("/api/gcp/bucket/browse",      middleware.CORS(handlers.BrowseGCPBucket))
-	mux.HandleFunc("/api/gcp/bucket/objects",     middleware.CORS(handlers.ListGCPObjects))
-	mux.HandleFunc("/api/gcp/bucket/download",    middleware.CORS(handlers.GCPDownloadURL))
-	mux.HandleFunc("/api/gcp/bucket/delete",      middleware.CORS(handlers.DeleteGCPObject))
-	mux.HandleFunc("/api/gcp/bucket/upload",      middleware.CORS(handlers.UploadGCPObject))
-	mux.HandleFunc("/api/gcp/bucket/stats",       middleware.CORS(handlers.GCPBucketStats))
+	mux.HandleFunc("/api/gcp/bucket/browse",           middleware.CORS(handlers.BrowseGCPBucket))
+	mux.HandleFunc("/api/gcp/bucket/objects",          middleware.CORS(handlers.ListGCPObjects))
+	mux.HandleFunc("/api/gcp/bucket/download",         middleware.CORS(handlers.GCPDownloadURL))
+	mux.HandleFunc("/api/gcp/bucket/delete",           middleware.CORS(handlers.DeleteGCPObject))
+	mux.HandleFunc("/api/gcp/bucket/copy",             middleware.CORS(handlers.CopyGCPObject))
+	mux.HandleFunc("/api/gcp/bucket/upload",           middleware.CORS(handlers.UploadGCPObject))
+	mux.HandleFunc("/api/gcp/bucket/stats",            middleware.CORS(handlers.GCPBucketStats))
+	mux.HandleFunc("/api/gcp/bucket/metadata",         middleware.CORS(handlers.GetGCPMetadata))
+	mux.HandleFunc("/api/gcp/bucket/metadata/update",  middleware.CORS(handlers.UpdateGCPMetadata))
 
 	// ── AWS connections ───────────────────────────────────────────
-	mux.HandleFunc("/api/aws/connections",        middleware.CORS(handlers.ListAWS))
-	mux.HandleFunc("/api/aws/connection",         middleware.CORS(handlers.CreateAWS))
-	mux.HandleFunc("/api/aws/connection/",        middleware.CORS(handlers.DeleteAWS))
-	mux.HandleFunc("/api/aws/test",               middleware.CORS(handlers.TestAWS))
+	mux.HandleFunc("/api/aws/connections",   middleware.CORS(handlers.ListAWS))
+	mux.HandleFunc("/api/aws/connection",    middleware.CORS(handlers.CreateAWS))
+	mux.HandleFunc("/api/aws/connection/",   middleware.CORS(handlers.AWSConnByID))
+	mux.HandleFunc("/api/aws/test",          middleware.CORS(handlers.TestAWS))
 
 	// ── AWS bucket operations ─────────────────────────────────────
-	mux.HandleFunc("/api/aws/bucket/browse",      middleware.CORS(handlers.BrowseAWSBucket))
-	mux.HandleFunc("/api/aws/bucket/objects",     middleware.CORS(handlers.ListAWSObjects))
-	mux.HandleFunc("/api/aws/bucket/download",    middleware.CORS(handlers.AWSDownloadURL))
-	mux.HandleFunc("/api/aws/bucket/delete",      middleware.CORS(handlers.DeleteAWSObject))
-	mux.HandleFunc("/api/aws/bucket/upload",      middleware.CORS(handlers.UploadAWSObject))
-	mux.HandleFunc("/api/aws/bucket/stats",       middleware.CORS(handlers.AWSBucketStats))
+	mux.HandleFunc("/api/aws/bucket/browse",           middleware.CORS(handlers.BrowseAWSBucket))
+	mux.HandleFunc("/api/aws/bucket/objects",          middleware.CORS(handlers.ListAWSObjects))
+	mux.HandleFunc("/api/aws/bucket/download",         middleware.CORS(handlers.AWSDownloadURL))
+	mux.HandleFunc("/api/aws/bucket/delete",           middleware.CORS(handlers.DeleteAWSObject))
+	mux.HandleFunc("/api/aws/bucket/copy",             middleware.CORS(handlers.CopyAWSObject))
+	mux.HandleFunc("/api/aws/bucket/upload",           middleware.CORS(handlers.UploadAWSObject))
+	mux.HandleFunc("/api/aws/bucket/stats",            middleware.CORS(handlers.AWSBucketStats))
+	mux.HandleFunc("/api/aws/bucket/metadata",         middleware.CORS(handlers.GetAWSMetadata))
+	mux.HandleFunc("/api/aws/bucket/metadata/update",  middleware.CORS(handlers.UpdateAWSMetadata))
 
 	srv := &http.Server{Addr: ":8080", Handler: mux}
 	log.Printf("starting backend on %s", srv.Addr)

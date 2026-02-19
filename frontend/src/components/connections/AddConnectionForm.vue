@@ -1,17 +1,19 @@
 <template>
   <div class="form-view">
-    <!-- Header -->
     <div class="form-view__hd">
-      <h1 class="form-view__title">New Connection</h1>
-      <p class="form-view__sub">Test and save a cloud bucket to start browsing files.</p>
+      <h1 class="form-view__title">{{ editConn ? 'Edit Connection' : 'New Connection' }}</h1>
+      <p class="form-view__sub">
+        {{ editConn ? 'Update the connection details below.' : 'Test and save a cloud bucket to start browsing files.' }}
+      </p>
     </div>
 
-    <!-- Provider toggle -->
+    <!-- Provider toggle (disabled in edit mode) -->
     <div class="provider-tabs">
       <button
         class="provider-tab"
         :class="{ 'provider-tab--active': provider === 'gcp' }"
-        @click="provider = 'gcp'"
+        :disabled="!!editConn"
+        @click="!editConn && (provider = 'gcp')"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 0 0 1.8-9.7 6 6 0 0 0-11.8-1A4 4 0 0 0 3 15z"/>
@@ -21,11 +23,11 @@
       <button
         class="provider-tab"
         :class="{ 'provider-tab--active': provider === 'aws' }"
-        @click="provider = 'aws'"
+        :disabled="!!editConn"
+        @click="!editConn && (provider = 'aws')"
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <ellipse cx="12" cy="5" rx="9" ry="3"/>
-          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+          <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
           <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
         </svg>
         AWS S3
@@ -70,7 +72,7 @@
           {{ testing ? 'Testing…' : 'Test connection' }}
         </BaseButton>
         <BaseButton type="submit" variant="primary" :loading="saving">
-          {{ saving ? 'Saving…' : 'Save' }}
+          {{ saving ? 'Saving…' : (editConn ? 'Update' : 'Save') }}
         </BaseButton>
       </div>
     </form>
@@ -78,22 +80,37 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import BaseInput   from '../ui/BaseInput.vue'
-import BaseButton  from '../ui/BaseButton.vue'
+import { ref, watch } from 'vue'
+import BaseInput    from '../ui/BaseInput.vue'
+import BaseButton   from '../ui/BaseButton.vue'
 import StatusNotice from '../ui/StatusNotice.vue'
 
-defineProps({
-  testing: { type: Boolean, default: false },
-  saving:  { type: Boolean, default: false },
-  error:   { type: String,  default: '' },
-  notice:  { type: String,  default: '' },
+const props = defineProps({
+  testing:  { type: Boolean, default: false },
+  saving:   { type: Boolean, default: false },
+  error:    { type: String,  default: '' },
+  notice:   { type: String,  default: '' },
+  editConn: { type: Object,  default: null }, // null = create mode
 })
 
 const emit = defineEmits(['test', 'save'])
 
-const provider = ref('gcp')
-const form = ref({ name: '', bucket: '', credentials: '' })
+const provider = ref(props.editConn?.provider ?? 'gcp')
+const form     = ref({
+  name:        props.editConn?.name        ?? '',
+  bucket:      props.editConn?.bucket      ?? '',
+  credentials: props.editConn?.credentials ?? '',
+})
+
+// Re-sync when editConn changes (e.g. switching which connection to edit)
+watch(() => props.editConn, conn => {
+  provider.value = conn?.provider ?? 'gcp'
+  form.value = {
+    name:        conn?.name        ?? '',
+    bucket:      conn?.bucket      ?? '',
+    credentials: conn?.credentials ?? '',
+  }
+})
 
 const gcpPlaceholder = `{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}`
 const awsPlaceholder = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "region": "us-east-1",\n  "endpoint": "https://...r2.cloudflarestorage.com"  ← optional, for R2/MinIO\n}`
@@ -103,8 +120,11 @@ function handleTest() {
 }
 
 async function handleSave() {
-  const success = await new Promise(resolve => emit('save', provider.value, { ...form.value }, resolve))
-  if (success) {
+  const success = await new Promise(resolve =>
+    emit('save', provider.value, { ...form.value }, resolve, props.editConn?.id ?? null)
+  )
+  if (success && !props.editConn) {
+    // Only reset form on create; keep values visible on edit
     form.value = { name: '', bucket: '', credentials: '' }
   }
 }

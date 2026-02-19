@@ -112,6 +112,18 @@ func CreateGCP(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"id": id})
 }
 
+// GCPConnByID handles both DELETE and PUT for /api/gcp/connection/{id}.
+func GCPConnByID(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodDelete:
+		DeleteGCPConn(w, r)
+	case http.MethodPut:
+		UpdateGCPConn(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
 func DeleteGCPConn(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 5 {
@@ -124,6 +136,40 @@ func DeleteGCPConn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err = appdb.DB.Exec("DELETE FROM gcp_connections WHERE id = ?", id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func UpdateGCPConn(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 5 {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
+	id, err := strconv.ParseInt(parts[4], 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var req struct {
+		Name        string `json:"name"`
+		Bucket      string `json:"bucket"`
+		Credentials string `json:"credentials"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := testGCP(req.Bucket, req.Credentials); err != nil {
+		http.Error(w, fmt.Sprintf("test failed: %v", err), http.StatusBadRequest)
+		return
+	}
+	if _, err := appdb.DB.Exec(
+		"UPDATE gcp_connections SET name=?, bucket=?, credentials=? WHERE id=?",
+		req.Name, req.Bucket, req.Credentials, id,
+	); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -158,12 +204,13 @@ type gcpEntry struct {
 	ContentType string    `json:"content_type,omitempty"`
 }
 
-// BrowseGCPBucket lists entries (files + virtual folders) at a given prefix.
+// BrowseGCPBucket lists entries (files + virtual folders) at a given prefix with pagination.
 func BrowseGCPBucket(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Bucket      string `json:"bucket"`
 		Credentials string `json:"credentials"`
 		Prefix      string `json:"prefix"`
+		PageToken   string `json:"page_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -184,9 +231,13 @@ func BrowseGCPBucket(w http.ResponseWriter, r *http.Request) {
 		Prefix:    req.Prefix,
 		Delimiter: "/",
 	})
+	if req.PageToken != "" {
+		it.PageInfo().Token = req.PageToken
+	}
+	it.PageInfo().MaxSize = 200
 
 	var entries []gcpEntry
-	for {
+	for i := 0; i < 200; i++ {
 		attrs, iterErr := it.Next()
 		if iterErr == iterator.Done {
 			break
@@ -212,8 +263,13 @@ func BrowseGCPBucket(w http.ResponseWriter, r *http.Request) {
 	if entries == nil {
 		entries = []gcpEntry{}
 	}
+	nextToken := it.PageInfo().Token
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"prefix": req.Prefix, "entries": entries})
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"prefix":          req.Prefix,
+		"entries":         entries,
+		"next_page_token": nextToken,
+	})
 }
 
 // ListGCPObjects is kept for backward compat (flat listing).
@@ -340,6 +396,46 @@ func DeleteGCPObject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// CopyGCPObject copies (and optionally deletes) a GCS object — used for rename/move.
+func CopyGCPObject(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Bucket      string `json:"bucket"`
+		Credentials string `json:"credentials"`
+		Source      string `json:"source"`
+		Destination string `json:"destination"`
+		Delete      bool   `json:"delete_source"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client, err := gcpClient(ctx, req.Credentials)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	src := client.Bucket(req.Bucket).Object(req.Source)
+	dst := client.Bucket(req.Bucket).Object(req.Destination)
+
+	if _, err := dst.CopierFrom(src).Run(ctx); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if req.Delete {
+		if err := src.Delete(ctx); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // UploadGCPObject uploads a file to GCS via multipart form.
 func UploadGCPObject(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(64 << 20); err != nil {
@@ -427,4 +523,85 @@ func GCPBucketStats(w http.ResponseWriter, r *http.Request) {
 		"total_size":   totalSize,
 		"truncated":    count == maxSample,
 	})
+}
+
+// GetGCPMetadata returns full metadata for a GCS object.
+func GetGCPMetadata(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Bucket      string `json:"bucket"`
+		Credentials string `json:"credentials"`
+		Object      string `json:"object"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := gcpClient(ctx, req.Credentials)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	attrs, err := client.Bucket(req.Bucket).Object(req.Object).Attrs(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	md := attrs.Metadata
+	if md == nil {
+		md = map[string]string{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"content_type":  attrs.ContentType,
+		"cache_control": attrs.CacheControl,
+		"metadata":      md,
+		"size":          attrs.Size,
+		"updated":       attrs.Updated,
+		"etag":          attrs.Etag,
+		"md5":           fmt.Sprintf("%x", attrs.MD5),
+	})
+}
+
+// UpdateGCPMetadata patches content-type, cache-control, and custom metadata on a GCS object.
+func UpdateGCPMetadata(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Bucket       string            `json:"bucket"`
+		Credentials  string            `json:"credentials"`
+		Object       string            `json:"object"`
+		ContentType  string            `json:"content_type"`
+		CacheControl string            `json:"cache_control"`
+		Metadata     map[string]string `json:"metadata"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	client, err := gcpClient(ctx, req.Credentials)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	uattrs := storage.ObjectAttrsToUpdate{
+		ContentType:  req.ContentType,
+		CacheControl: req.CacheControl,
+		Metadata:     req.Metadata,
+	}
+	if _, err := client.Bucket(req.Bucket).Object(req.Object).Update(ctx, uattrs); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

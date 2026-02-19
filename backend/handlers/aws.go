@@ -15,6 +15,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	awsauth "github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 
 	appdb "github.com/PandhuWibowo/oss-portable/db"
 )
@@ -142,6 +143,18 @@ func CreateAWS(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(map[string]any{"id": id})
 }
 
+// AWSConnByID handles both DELETE and PUT for /api/aws/connection/{id}.
+func AWSConnByID(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodDelete:
+		DeleteAWS(w, r)
+	case http.MethodPut:
+		UpdateAWSConn(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
 func DeleteAWS(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.Path, "/")
 	if len(parts) < 5 {
@@ -154,6 +167,40 @@ func DeleteAWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if _, err = appdb.DB.Exec("DELETE FROM aws_connections WHERE id = ?", id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func UpdateAWSConn(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) < 5 {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
+	id, err := strconv.ParseInt(parts[4], 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var req struct {
+		Name        string `json:"name"`
+		Bucket      string `json:"bucket"`
+		Credentials string `json:"credentials"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if err := testS3(req.Bucket, req.Credentials); err != nil {
+		http.Error(w, fmt.Sprintf("test failed: %v", err), http.StatusBadRequest)
+		return
+	}
+	if _, err := appdb.DB.Exec(
+		"UPDATE aws_connections SET name=?, bucket=?, credentials=? WHERE id=?",
+		req.Name, req.Bucket, req.Credentials, id,
+	); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -187,12 +234,13 @@ type awsEntry struct {
 	Updated time.Time `json:"updated,omitempty"`
 }
 
-// BrowseAWSBucket lists entries (files + virtual folders) at a given prefix.
+// BrowseAWSBucket lists entries (files + virtual folders) at a given prefix with pagination.
 func BrowseAWSBucket(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Bucket      string `json:"bucket"`
 		Credentials string `json:"credentials"`
 		Prefix      string `json:"prefix"`
+		PageToken   string `json:"page_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -214,12 +262,17 @@ func BrowseAWSBucket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+	input := &s3.ListObjectsV2Input{
 		Bucket:    aws.String(req.Bucket),
 		Prefix:    aws.String(req.Prefix),
 		Delimiter: aws.String("/"),
-		MaxKeys:   aws.Int32(1000),
-	})
+		MaxKeys:   aws.Int32(200),
+	}
+	if req.PageToken != "" {
+		input.ContinuationToken = aws.String(req.PageToken)
+	}
+
+	result, err := client.ListObjectsV2(ctx, input)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -252,8 +305,18 @@ func BrowseAWSBucket(w http.ResponseWriter, r *http.Request) {
 	if entries == nil {
 		entries = []awsEntry{}
 	}
+
+	nextToken := ""
+	if result.NextContinuationToken != nil {
+		nextToken = *result.NextContinuationToken
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"prefix": req.Prefix, "entries": entries})
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"prefix":          req.Prefix,
+		"entries":         entries,
+		"next_page_token": nextToken,
+	})
 }
 
 // ListAWSObjects is kept for backward compat (flat listing).
@@ -402,6 +465,57 @@ func DeleteAWSObject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// CopyAWSObject copies (and optionally deletes) an S3 object — used for rename/move.
+func CopyAWSObject(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Bucket      string `json:"bucket"`
+		Credentials string `json:"credentials"`
+		Source      string `json:"source"`
+		Destination string `json:"destination"`
+		Delete      bool   `json:"delete_source"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	creds, err := awsCredsFromJSON(req.Credentials)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client, err := awsS3Client(ctx, creds)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	copySource := req.Bucket + "/" + req.Source
+	if _, err := client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     aws.String(req.Bucket),
+		CopySource: aws.String(copySource),
+		Key:        aws.String(req.Destination),
+	}); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if req.Delete {
+		if _, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(req.Bucket),
+			Key:    aws.String(req.Source),
+		}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // UploadAWSObject uploads a file to S3 via multipart form.
 func UploadAWSObject(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(64 << 20); err != nil {
@@ -511,4 +625,128 @@ func AWSBucketStats(w http.ResponseWriter, r *http.Request) {
 		"total_size":   totalSize,
 		"truncated":    count == maxSample,
 	})
+}
+
+// GetAWSMetadata returns full metadata for an S3 object via HeadObject.
+func GetAWSMetadata(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Bucket      string `json:"bucket"`
+		Credentials string `json:"credentials"`
+		Object      string `json:"object"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	creds, err := awsCredsFromJSON(req.Credentials)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := awsS3Client(ctx, creds)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	head, err := client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(req.Bucket),
+		Key:    aws.String(req.Object),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	contentType := ""
+	if head.ContentType != nil {
+		contentType = *head.ContentType
+	}
+	cacheControl := ""
+	if head.CacheControl != nil {
+		cacheControl = *head.CacheControl
+	}
+	etag := ""
+	if head.ETag != nil {
+		etag = strings.Trim(*head.ETag, `"`)
+	}
+	var size int64
+	if head.ContentLength != nil {
+		size = *head.ContentLength
+	}
+	var updated time.Time
+	if head.LastModified != nil {
+		updated = *head.LastModified
+	}
+	md := head.Metadata
+	if md == nil {
+		md = map[string]string{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"content_type":  contentType,
+		"cache_control": cacheControl,
+		"metadata":      md,
+		"size":          size,
+		"updated":       updated,
+		"etag":          etag,
+	})
+}
+
+// UpdateAWSMetadata patches an S3 object's metadata via copy-to-self with REPLACE directive.
+func UpdateAWSMetadata(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Bucket       string            `json:"bucket"`
+		Credentials  string            `json:"credentials"`
+		Object       string            `json:"object"`
+		ContentType  string            `json:"content_type"`
+		CacheControl string            `json:"cache_control"`
+		Metadata     map[string]string `json:"metadata"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	creds, err := awsCredsFromJSON(req.Credentials)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	client, err := awsS3Client(ctx, creds)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	copySource := req.Bucket + "/" + req.Object
+	input := &s3.CopyObjectInput{
+		Bucket:            aws.String(req.Bucket),
+		CopySource:        aws.String(copySource),
+		Key:               aws.String(req.Object),
+		MetadataDirective: types.MetadataDirectiveReplace,
+		Metadata:          req.Metadata,
+	}
+	if req.ContentType != "" {
+		input.ContentType = aws.String(req.ContentType)
+	}
+	if req.CacheControl != "" {
+		input.CacheControl = aws.String(req.CacheControl)
+	}
+
+	if _, err := client.CopyObject(ctx, input); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
