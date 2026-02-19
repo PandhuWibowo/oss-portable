@@ -8,7 +8,7 @@
         </svg>
       </div>
       <div>
-        <div class="brand-name">OSS Portable</div>
+        <div class="brand-name">Anvesa Vestra</div>
         <div class="brand-sub">Cloud storage manager</div>
       </div>
     </div>
