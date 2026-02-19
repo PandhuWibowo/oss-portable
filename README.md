@@ -1,4 +1,4 @@
-# oss-portable
+# Anvesa Vestra
 
 This repository contains a minimal scaffold for a Go backend and a Vue 3 frontend. The frontend is intended to run with Bun as the runtime/package manager (Bun is optional but recommended for fast frontend installs and runs).
 
