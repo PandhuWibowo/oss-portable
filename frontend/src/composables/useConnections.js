@@ -1,17 +1,16 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 export function useConnections() {
   const connections = ref([])
-  const loading = ref(false)
-  const testing = ref(false)
-  const saving = ref(false)
-  const error = ref('')
-  const notice = ref('')
+  const loading     = ref(false)
+  const testing     = ref(false)
+  const saving      = ref(false)
+  const error       = ref('')
+  const notice      = ref('')
 
-  function clearMessages() {
-    error.value = ''
-    notice.value = ''
-  }
+  function clearMessages() { error.value = ''; notice.value = '' }
+
+  // ── connection list ──────────────────────────────────────────
 
   async function fetchConnections() {
     loading.value = true
@@ -26,7 +25,6 @@ export function useConnections() {
       connections.value = [...gcpList, ...awsList]
     } catch (err) {
       error.value = 'Failed to load connections.'
-      console.error(err)
     } finally {
       loading.value = false
     }
@@ -38,16 +36,12 @@ export function useConnections() {
     try {
       const endpoint = provider === 'gcp' ? '/api/gcp/test' : '/api/aws/test'
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bucket, credentials }),
+        body:    JSON.stringify({ bucket, credentials }),
       })
-      if (!res.ok) {
-        const txt = await res.text()
-        error.value = 'Test failed: ' + txt
-      } else {
-        notice.value = 'Connection test succeeded ✓'
-      }
+      if (!res.ok) error.value = 'Test failed: ' + await res.text()
+      else notice.value = 'Connection test succeeded ✓'
     } catch (err) {
       error.value = 'Error: ' + err.message
     } finally {
@@ -61,16 +55,12 @@ export function useConnections() {
     try {
       const endpoint = provider === 'gcp' ? '/api/gcp/connection' : '/api/aws/connection'
       const res = await fetch(endpoint, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body:    JSON.stringify(form),
       })
-      if (!res.ok) {
-        const txt = await res.text()
-        error.value = 'Save failed: ' + txt
-        return false
-      }
-      notice.value = 'Connection saved successfully ✓'
+      if (!res.ok) { error.value = 'Save failed: ' + await res.text(); return false }
+      notice.value = 'Connection saved ✓'
       await fetchConnections()
       return true
     } catch (err) {
@@ -81,51 +71,92 @@ export function useConnections() {
     }
   }
 
-  async function listObjects(provider, bucket, credentials) {
-    const endpoint = provider === 'gcp'
-      ? '/api/gcp/bucket/objects'
-      : '/api/aws/bucket/objects'
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bucket, credentials }),
-    })
-    if (!res.ok) {
-      const txt = await res.text()
-      throw new Error(txt)
+  async function removeConnection(provider, id) {
+    clearMessages()
+    try {
+      const endpoint = provider === 'gcp' ? `/api/gcp/connection/${id}` : `/api/aws/connection/${id}`
+      const res = await fetch(endpoint, { method: 'DELETE' })
+      if (res.ok) await fetchConnections()
+    } catch (err) {
+      error.value = 'Delete failed: ' + err.message
     }
+  }
+
+  // ── bucket operations ─────────────────────────────────────────
+
+  async function browseObjects(provider, bucket, credentials, prefix = '') {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/browse' : '/api/aws/bucket/browse'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials, prefix }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json() // { prefix, entries: [...] }
+  }
+
+  async function getDownloadURL(provider, bucket, credentials, object) {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/download' : '/api/aws/bucket/download'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials, object }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return (await res.json()).url
+  }
+
+  async function deleteObject(provider, bucket, credentials, object) {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/delete' : '/api/aws/bucket/delete'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials, object }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+  }
+
+  async function uploadObjects(provider, bucket, credentials, prefix, files) {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/upload' : '/api/aws/bucket/upload'
+    await Promise.all(Array.from(files).map(file => {
+      const form = new FormData()
+      form.append('bucket',      bucket)
+      form.append('credentials', credentials)
+      form.append('prefix',      prefix)
+      form.append('file',        file)
+      return fetch(endpoint, { method: 'POST', body: form }).then(r => {
+        if (!r.ok) return r.text().then(t => { throw new Error(t) })
+      })
+    }))
+  }
+
+  async function getBucketStats(provider, bucket, credentials) {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/stats' : '/api/aws/bucket/stats'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials }),
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json() // { object_count, total_size, truncated }
+  }
+
+  // kept for compat
+  async function listObjects(provider, bucket, credentials) {
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/objects' : '/api/aws/bucket/objects'
+    const res = await fetch(endpoint, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ bucket, credentials }),
+    })
+    if (!res.ok) throw new Error(await res.text())
     const data = await res.json()
     return { objects: data.objects ?? [], truncated: data.truncated ?? false }
   }
 
-  async function removeConnection(provider, id) {
-    clearMessages()
-    try {
-      const endpoint = provider === 'gcp'
-        ? `/api/gcp/connection/${id}`
-        : `/api/aws/connection/${id}`
-      const res = await fetch(endpoint, { method: 'DELETE' })
-      if (res.ok) {
-        await fetchConnections()
-      }
-    } catch (err) {
-      error.value = 'Delete failed: ' + err.message
-      console.error(err)
-    }
-  }
-
   return {
-    connections,
-    loading,
-    testing,
-    saving,
-    error,
-    notice,
-    fetchConnections,
-    testConnection,
-    saveConnection,
-    removeConnection,
-    listObjects,
-    clearMessages,
+    connections, loading, testing, saving, error, notice,
+    fetchConnections, testConnection, saveConnection, removeConnection, clearMessages,
+    browseObjects, getDownloadURL, deleteObject, uploadObjects, getBucketStats, listObjects,
   }
 }

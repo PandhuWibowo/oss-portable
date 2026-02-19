@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import AppSidebar       from './components/layout/AppHeader.vue'
 import AddConnectionForm from './components/connections/AddConnectionForm.vue'
 import BucketBrowser    from './components/connections/BucketBrowser.vue'
@@ -71,7 +71,19 @@ const {
 const mode       = ref('welcome') // 'welcome' | 'form' | 'browse'
 const activeConn = ref(null)
 
-onMounted(fetchConnections)
+onMounted(() => {
+  fetchConnections()
+  window.addEventListener('keydown', onAppKeyDown)
+})
+onUnmounted(() => window.removeEventListener('keydown', onAppKeyDown))
+
+function onAppKeyDown(e) {
+  const tag = document.activeElement?.tagName
+  const inInput = ['INPUT', 'TEXTAREA'].includes(tag)
+  if ((e.key === 'n' || e.key === 'N') && !inInput && !e.metaKey && !e.ctrlKey) {
+    startNew()
+  }
+}
 
 function handleSelect(conn) {
   activeConn.value = conn

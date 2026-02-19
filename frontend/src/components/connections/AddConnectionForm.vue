@@ -57,6 +57,9 @@
         <p v-if="provider === 'gcp'" class="form-hint">
           Leave empty to connect to a publicly accessible GCS bucket.
         </p>
+        <p v-else class="form-hint">
+          For Cloudflare R2 or MinIO, include an <code style="font-family:var(--mono);font-size:11px">"endpoint"</code> key pointing to your custom S3-compatible URL.
+        </p>
       </div>
 
       <StatusNotice :message="error"  type="error"   />
@@ -93,7 +96,7 @@ const provider = ref('gcp')
 const form = ref({ name: '', bucket: '', credentials: '' })
 
 const gcpPlaceholder = `{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}`
-const awsPlaceholder = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "region": "us-east-1"\n}`
+const awsPlaceholder = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "region": "us-east-1",\n  "endpoint": "https://...r2.cloudflarestorage.com"  ← optional, for R2/MinIO\n}`
 
 function handleTest() {
   emit('test', provider.value, form.value.bucket, form.value.credentials)
