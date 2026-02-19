@@ -54,6 +54,70 @@ func testGCP(bucket, credentialsJSON string) error {
 	return attrsErr
 }
 
+// gcpObject represents a single GCS object returned to the client.
+type gcpObject struct {
+	Name        string    `json:"name"`
+	Size        int64     `json:"size"`
+	Updated     time.Time `json:"updated"`
+	ContentType string    `json:"content_type"`
+}
+
+// ListGCPObjects lists all objects inside a GCS bucket.
+func ListGCPObjects(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Bucket      string `json:"bucket"`
+		Credentials string `json:"credentials"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	var client *storage.Client
+	var err error
+	if strings.TrimSpace(req.Credentials) == "" {
+		client, err = storage.NewClient(ctx, option.WithoutAuthentication())
+	} else {
+		client, err = storage.NewClient(ctx, option.WithCredentialsJSON([]byte(req.Credentials)))
+	}
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer client.Close()
+
+	const maxResults = 1000
+	it := client.Bucket(req.Bucket).Objects(ctx, nil)
+	var objects []gcpObject
+	for len(objects) < maxResults {
+		attrs, iterErr := it.Next()
+		if iterErr == iterator.Done {
+			break
+		}
+		if iterErr != nil {
+			// Return whatever we collected before the error
+			break
+		}
+		objects = append(objects, gcpObject{
+			Name:        attrs.Name,
+			Size:        attrs.Size,
+			Updated:     attrs.Updated,
+			ContentType: attrs.ContentType,
+		})
+	}
+	if objects == nil {
+		objects = []gcpObject{}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"objects":   objects,
+		"truncated": len(objects) == maxResults,
+	})
+}
+
 // ListGCP returns all saved GCP connections.
 func ListGCP(w http.ResponseWriter, r *http.Request) {
 	rows, err := appdb.DB.Query(

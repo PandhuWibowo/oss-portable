@@ -43,12 +43,14 @@ func main() {
 	mux.HandleFunc("/api/gcp/connection", middleware.CORS(handlers.CreateGCP))
 	mux.HandleFunc("/api/gcp/connection/", middleware.CORS(handlers.DeleteGCP))
 	mux.HandleFunc("/api/gcp/test", middleware.CORS(handlers.TestGCP))
+	mux.HandleFunc("/api/gcp/bucket/objects", middleware.CORS(handlers.ListGCPObjects))
 
 	// AWS routes
 	mux.HandleFunc("/api/aws/connections", middleware.CORS(handlers.ListAWS))
 	mux.HandleFunc("/api/aws/connection", middleware.CORS(handlers.CreateAWS))
 	mux.HandleFunc("/api/aws/connection/", middleware.CORS(handlers.DeleteAWS))
 	mux.HandleFunc("/api/aws/test", middleware.CORS(handlers.TestAWS))
+	mux.HandleFunc("/api/aws/bucket/objects", middleware.CORS(handlers.ListAWSObjects))
 
 	srv := &http.Server{Addr: ":8080", Handler: mux}
 	log.Printf("starting backend on %s", srv.Addr)

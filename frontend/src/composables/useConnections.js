@@ -81,6 +81,23 @@ export function useConnections() {
     }
   }
 
+  async function listObjects(provider, bucket, credentials) {
+    const endpoint = provider === 'gcp'
+      ? '/api/gcp/bucket/objects'
+      : '/api/aws/bucket/objects'
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bucket, credentials }),
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      throw new Error(txt)
+    }
+    const data = await res.json()
+    return { objects: data.objects ?? [], truncated: data.truncated ?? false }
+  }
+
   async function removeConnection(provider, id) {
     clearMessages()
     try {
@@ -108,6 +125,7 @@ export function useConnections() {
     testConnection,
     saveConnection,
     removeConnection,
+    listObjects,
     clearMessages,
   }
 }
