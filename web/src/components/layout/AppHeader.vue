@@ -8,7 +8,7 @@
         </svg>
       </div>
       <div>
-        <div class="brand-name">Anvesa Vestra</div>
+        <div class="brand-name"><span class="brand-anvesa">Anvesa</span> Vestra</div>
         <div class="brand-sub">Cloud storage manager</div>
       </div>
     </div>
@@ -115,7 +115,7 @@ const props = defineProps({
   activeConn:  { type: Object, default: null },
 })
 
-defineEmits(['new-connection', 'select', 'delete'])
+defineEmits(['new-connection', 'select', 'edit', 'delete'])
 
 const { isLight, toggleTheme } = useTheme()
 
