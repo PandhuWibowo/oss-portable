@@ -16,13 +16,15 @@ export function useConnections() {
     loading.value = true
     clearMessages()
     try {
-      const [gcpRes, awsRes] = await Promise.all([
+      const [gcpRes, awsRes, huaweiRes] = await Promise.all([
         fetch('/api/gcp/connections').then(r => r.ok ? r.json() : []),
         fetch('/api/aws/connections').then(r => r.ok ? r.json() : []),
+        fetch('/api/huawei/connections').then(r => r.ok ? r.json() : []),
       ])
-      const gcpList = (gcpRes || []).map(c => ({ ...c, provider: 'gcp' }))
-      const awsList = (awsRes || []).map(c => ({ ...c, provider: 'aws' }))
-      connections.value = [...gcpList, ...awsList]
+      const gcpList    = (gcpRes    || []).map(c => ({ ...c, provider: 'gcp' }))
+      const awsList    = (awsRes    || []).map(c => ({ ...c, provider: 'aws' }))
+      const huaweiList = (huaweiRes || []).map(c => ({ ...c, provider: 'huawei' }))
+      connections.value = [...gcpList, ...awsList, ...huaweiList]
     } catch (err) {
       error.value = 'Failed to load connections.'
     } finally {
@@ -34,7 +36,7 @@ export function useConnections() {
     testing.value = true
     clearMessages()
     try {
-      const endpoint = provider === 'gcp' ? '/api/gcp/test' : '/api/aws/test'
+      const endpoint = provider === 'gcp' ? '/api/gcp/test' : provider === 'huawei' ? '/api/huawei/test' : '/api/aws/test'
       const res = await fetch(endpoint, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,7 +55,7 @@ export function useConnections() {
     saving.value = true
     clearMessages()
     try {
-      const endpoint = provider === 'gcp' ? '/api/gcp/connection' : '/api/aws/connection'
+      const endpoint = provider === 'gcp' ? '/api/gcp/connection' : provider === 'huawei' ? '/api/huawei/connection' : '/api/aws/connection'
       const res = await fetch(endpoint, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -77,6 +79,8 @@ export function useConnections() {
     try {
       const endpoint = provider === 'gcp'
         ? `/api/gcp/connection/${id}`
+        : provider === 'huawei'
+        ? `/api/huawei/connection/${id}`
         : `/api/aws/connection/${id}`
       const res = await fetch(endpoint, {
         method:  'PUT',
@@ -98,7 +102,7 @@ export function useConnections() {
   async function removeConnection(provider, id) {
     clearMessages()
     try {
-      const endpoint = provider === 'gcp' ? `/api/gcp/connection/${id}` : `/api/aws/connection/${id}`
+      const endpoint = provider === 'gcp' ? `/api/gcp/connection/${id}` : provider === 'huawei' ? `/api/huawei/connection/${id}` : `/api/aws/connection/${id}`
       const res = await fetch(endpoint, { method: 'DELETE' })
       if (res.ok) await fetchConnections()
     } catch (err) {
@@ -109,7 +113,7 @@ export function useConnections() {
   // ── bucket browsing ──────────────────────────────────────────
 
   async function browseObjects(provider, bucket, credentials, prefix = '', pageToken = '') {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/browse' : '/api/aws/bucket/browse'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/browse' : provider === 'huawei' ? '/api/huawei/bucket/browse' : '/api/aws/bucket/browse'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -120,7 +124,7 @@ export function useConnections() {
   }
 
   async function getDownloadURL(provider, bucket, credentials, object) {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/download' : '/api/aws/bucket/download'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/download' : provider === 'huawei' ? '/api/huawei/bucket/download' : '/api/aws/bucket/download'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -131,7 +135,7 @@ export function useConnections() {
   }
 
   async function deleteObject(provider, bucket, credentials, object) {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/delete' : '/api/aws/bucket/delete'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/delete' : provider === 'huawei' ? '/api/huawei/bucket/delete' : '/api/aws/bucket/delete'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,7 +145,7 @@ export function useConnections() {
   }
 
   async function copyObject(provider, bucket, credentials, source, destination, deleteSource = true) {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/copy' : '/api/aws/bucket/copy'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/copy' : provider === 'huawei' ? '/api/huawei/bucket/copy' : '/api/aws/bucket/copy'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -151,7 +155,7 @@ export function useConnections() {
   }
 
   async function uploadObjects(provider, bucket, credentials, prefix, files) {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/upload' : '/api/aws/bucket/upload'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/upload' : provider === 'huawei' ? '/api/huawei/bucket/upload' : '/api/aws/bucket/upload'
     await Promise.all(Array.from(files).map(file => {
       const form = new FormData()
       form.append('bucket',      bucket)
@@ -165,7 +169,7 @@ export function useConnections() {
   }
 
   async function getBucketStats(provider, bucket, credentials) {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/stats' : '/api/aws/bucket/stats'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/stats' : provider === 'huawei' ? '/api/huawei/bucket/stats' : '/api/aws/bucket/stats'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -178,7 +182,7 @@ export function useConnections() {
   // ── metadata ─────────────────────────────────────────────────
 
   async function getObjectMetadata(provider, bucket, credentials, object) {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/metadata' : '/api/aws/bucket/metadata'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/metadata' : provider === 'huawei' ? '/api/huawei/bucket/metadata' : '/api/aws/bucket/metadata'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -191,6 +195,8 @@ export function useConnections() {
   async function updateObjectMetadata(provider, bucket, credentials, object, patch) {
     const endpoint = provider === 'gcp'
       ? '/api/gcp/bucket/metadata/update'
+      : provider === 'huawei'
+      ? '/api/huawei/bucket/metadata/update'
       : '/api/aws/bucket/metadata/update'
     const res = await fetch(endpoint, {
       method:  'POST',
@@ -203,7 +209,7 @@ export function useConnections() {
   // ── compat (flat listing) ────────────────────────────────────
 
   async function listObjects(provider, bucket, credentials) {
-    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/objects' : '/api/aws/bucket/objects'
+    const endpoint = provider === 'gcp' ? '/api/gcp/bucket/objects' : provider === 'huawei' ? '/api/huawei/bucket/objects' : '/api/aws/bucket/objects'
     const res = await fetch(endpoint, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },

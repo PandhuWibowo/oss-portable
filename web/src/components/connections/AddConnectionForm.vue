@@ -32,6 +32,17 @@
         </svg>
         AWS S3
       </button>
+      <button
+        class="provider-tab"
+        :class="{ 'provider-tab--active': provider === 'huawei' }"
+        :disabled="!!editConn"
+        @click="!editConn && (provider = 'huawei')"
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+        </svg>
+        Huawei OBS
+      </button>
     </div>
 
     <form @submit.prevent="handleSave" class="conn-form">
@@ -42,22 +53,25 @@
 
       <div class="form-group">
         <label class="form-label">Bucket</label>
-        <BaseInput v-model="form.bucket" :placeholder="provider === 'gcp' ? 'my-bucket-name' : 'my-s3-bucket'" />
+        <BaseInput v-model="form.bucket" :placeholder="provider === 'gcp' ? 'my-bucket-name' : provider === 'huawei' ? 'my-obs-bucket' : 'my-s3-bucket'" />
       </div>
 
       <div class="form-group">
         <label class="form-label">
-          {{ provider === 'gcp' ? 'Service account JSON' : 'Credentials JSON' }}
+          {{ provider === 'gcp' ? 'Service account JSON' : provider === 'huawei' ? 'OBS Credentials JSON' : 'Credentials JSON' }}
           <span class="form-label-optional" v-if="provider === 'gcp'">(optional for public buckets)</span>
         </label>
         <textarea
           class="base-textarea"
           v-model="form.credentials"
           rows="6"
-          :placeholder="provider === 'gcp' ? gcpPlaceholder : awsPlaceholder"
+          :placeholder="provider === 'gcp' ? gcpPlaceholder : provider === 'huawei' ? huaweiPlaceholder : awsPlaceholder"
         ></textarea>
         <p v-if="provider === 'gcp'" class="form-hint">
           Leave empty to connect to a publicly accessible GCS bucket.
+        </p>
+        <p v-else-if="provider === 'huawei'" class="form-hint">
+          The <code style="font-family:var(--mono);font-size:11px">"endpoint"</code> field is required, e.g. <code style="font-family:var(--mono);font-size:11px">https://obs.cn-north-4.myhuaweicloud.com</code>.
         </p>
         <p v-else class="form-hint">
           For Cloudflare R2 or MinIO, include an <code style="font-family:var(--mono);font-size:11px">"endpoint"</code> key pointing to your custom S3-compatible URL.
@@ -112,8 +126,9 @@ watch(() => props.editConn, conn => {
   }
 })
 
-const gcpPlaceholder = `{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}`
-const awsPlaceholder = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "region": "us-east-1",\n  "endpoint": "https://...r2.cloudflarestorage.com"  ← optional, for R2/MinIO\n}`
+const gcpPlaceholder    = `{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}`
+const awsPlaceholder    = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "region": "us-east-1",\n  "endpoint": "https://...r2.cloudflarestorage.com"  ← optional, for R2/MinIO\n}`
+const huaweiPlaceholder = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "endpoint": "https://obs.cn-north-4.myhuaweicloud.com",\n  "region": "cn-north-4"\n}`
 
 function handleTest() {
   emit('test', provider.value, form.value.bucket, form.value.credentials)

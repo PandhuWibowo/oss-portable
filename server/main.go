@@ -50,6 +50,23 @@ func main() {
 	mux.HandleFunc("/api/aws/bucket/metadata",         middleware.CORS(handlers.GetAWSMetadata))
 	mux.HandleFunc("/api/aws/bucket/metadata/update",  middleware.CORS(handlers.UpdateAWSMetadata))
 
+	// ── Huawei OBS connections ────────────────────────────────────
+	mux.HandleFunc("/api/huawei/connections",  middleware.CORS(handlers.ListHuawei))
+	mux.HandleFunc("/api/huawei/connection",   middleware.CORS(handlers.CreateHuawei))
+	mux.HandleFunc("/api/huawei/connection/",  middleware.CORS(handlers.HuaweiConnByID))
+	mux.HandleFunc("/api/huawei/test",         middleware.CORS(handlers.TestHuawei))
+
+	// ── Huawei OBS bucket operations ──────────────────────────────
+	mux.HandleFunc("/api/huawei/bucket/browse",          middleware.CORS(handlers.BrowseHuaweiBucket))
+	mux.HandleFunc("/api/huawei/bucket/objects",         middleware.CORS(handlers.ListHuaweiObjects))
+	mux.HandleFunc("/api/huawei/bucket/download",        middleware.CORS(handlers.HuaweiDownloadURL))
+	mux.HandleFunc("/api/huawei/bucket/delete",          middleware.CORS(handlers.DeleteHuaweiObject))
+	mux.HandleFunc("/api/huawei/bucket/copy",            middleware.CORS(handlers.CopyHuaweiObject))
+	mux.HandleFunc("/api/huawei/bucket/upload",          middleware.CORS(handlers.UploadHuaweiObject))
+	mux.HandleFunc("/api/huawei/bucket/stats",           middleware.CORS(handlers.HuaweiBucketStats))
+	mux.HandleFunc("/api/huawei/bucket/metadata",        middleware.CORS(handlers.GetHuaweiMetadata))
+	mux.HandleFunc("/api/huawei/bucket/metadata/update", middleware.CORS(handlers.UpdateHuaweiMetadata))
+
 	// ── Docs ──────────────────────────────────────────────────────
 	mux.HandleFunc("/api/docs/", middleware.CORS(handlers.ServeDocs))
 
