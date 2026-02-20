@@ -1248,6 +1248,172 @@ body {
 .toast-leave-to   { transform: translateX(24px); opacity: 0; max-height: 0; padding: 0; margin: 0; }
 .toast-move       { transition: transform 200ms var(--ease); }
 
+/* ─── Docs viewer ─────────────────────────────────────────────── */
+.docs-shell {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.docs-nav {
+  width: 196px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  padding: 20px 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.docs-nav__title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  padding: 0 10px;
+  margin-bottom: 8px;
+}
+
+.docs-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-2);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.docs-nav__item:hover  { background: var(--surface-2); color: var(--text); }
+.docs-nav__item.is-active { background: var(--accent-bg); color: var(--accent); font-weight: 500; }
+.docs-nav__icon { display: flex; flex-shrink: 0; }
+
+.docs-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 44px 56px;
+}
+
+.docs-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 40px 0;
+}
+.docs-state--error { color: var(--danger); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.docs-state__spin { animation: spin .8s linear infinite; }
+
+/* ─── Docs sidebar active state ───────────────────────────────── */
+.theme-btn.is-active { color: var(--accent); background: var(--accent-bg); }
+
+/* ─── Prose (rendered markdown) ───────────────────────────────── */
+.docs-prose {
+  max-width: 720px;
+  line-height: 1.75;
+  color: var(--text-2);
+}
+
+.docs-prose h1 {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.3px;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.docs-prose h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 40px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.docs-prose h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+.docs-prose p  { margin-bottom: 14px; }
+.docs-prose a  { color: var(--accent); text-decoration: none; }
+.docs-prose a:hover { text-decoration: underline; }
+
+.docs-prose code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xs);
+  padding: 1px 5px;
+  color: var(--text);
+}
+.docs-prose pre {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+  overflow-x: auto;
+  margin-bottom: 18px;
+}
+.docs-prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.docs-prose ul, .docs-prose ol { padding-left: 20px; margin-bottom: 14px; }
+.docs-prose li { margin-bottom: 4px; }
+
+.docs-prose blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 10px 16px;
+  background: var(--accent-bg);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  margin-bottom: 16px;
+}
+.docs-prose blockquote p { color: var(--text-2); margin: 0; }
+
+.docs-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 18px;
+  font-size: 13px;
+}
+.docs-prose th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text);
+}
+.docs-prose td {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+}
+.docs-prose tr:nth-child(even) td { background: var(--surface-2); }
+.docs-prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
 /* ─── Responsive ──────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .shell { flex-direction: column; overflow: auto; }
@@ -1257,4 +1423,6 @@ body {
   .form-view { padding: 24px 20px; }
   .toast-container { bottom: 16px; right: 16px; left: 16px; }
   .toast { max-width: 100%; }
+  .docs-nav { width: 160px; }
+  .docs-content { padding: 24px 20px; }
 }

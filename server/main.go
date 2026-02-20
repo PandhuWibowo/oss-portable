@@ -50,6 +50,9 @@ func main() {
 	mux.HandleFunc("/api/aws/bucket/metadata",         middleware.CORS(handlers.GetAWSMetadata))
 	mux.HandleFunc("/api/aws/bucket/metadata/update",  middleware.CORS(handlers.UpdateAWSMetadata))
 
+	// ── Docs ──────────────────────────────────────────────────────
+	mux.HandleFunc("/api/docs/", middleware.CORS(handlers.ServeDocs))
+
 	srv := &http.Server{Addr: ":8080", Handler: mux}
 	log.Printf("starting backend on %s", srv.Addr)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

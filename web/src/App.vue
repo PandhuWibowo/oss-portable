@@ -5,10 +5,12 @@
       :connections="connections"
       :loading="loading"
       :activeConn="activeConn"
+      :docsActive="mode === 'docs'"
       @new-connection="startNew"
       @select="handleSelect"
       @edit="handleEdit"
       @delete="handleDelete"
+      @docs="mode = 'docs'"
     />
 
     <!-- Main area -->
@@ -64,6 +66,9 @@
         @delete="handleDelete(activeConn.provider, activeConn.id)"
       />
 
+      <!-- Documentation -->
+      <DocsViewer v-else-if="mode === 'docs'" />
+
     </main>
 
     <!-- Global overlays -->
@@ -77,6 +82,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import AppSidebar        from './components/layout/AppHeader.vue'
 import AddConnectionForm from './components/connections/AddConnectionForm.vue'
 import BucketBrowser     from './components/connections/BucketBrowser.vue'
+import DocsViewer        from './components/docs/DocsViewer.vue'
 import BaseButton        from './components/ui/BaseButton.vue'
 import ToastContainer    from './components/ui/ToastContainer.vue'
 import ConfirmModal      from './components/ui/ConfirmModal.vue'
@@ -91,7 +97,7 @@ const {
 
 const toast = useToast()
 
-const mode        = ref('welcome') // 'welcome' | 'form' | 'edit' | 'browse'
+const mode        = ref('welcome') // 'welcome' | 'form' | 'edit' | 'browse' | 'docs'
 const activeConn  = ref(null)
 const editingConn = ref(null)
 

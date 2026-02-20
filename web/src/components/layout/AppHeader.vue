@@ -85,8 +85,17 @@
       </template>
     </div>
 
-    <!-- Theme toggle -->
+    <!-- Bottom actions -->
     <div class="sidebar__bottom">
+      <!-- Docs -->
+      <button class="theme-btn" :class="{ 'is-active': docsActive }" @click="$emit('docs')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        Docs
+      </button>
+
+      <!-- Theme toggle -->
       <button class="theme-btn" @click="toggleTheme">
         <svg v-if="isLight" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="5"/>
@@ -113,9 +122,10 @@ const props = defineProps({
   connections: { type: Array, default: () => [] },
   loading:     { type: Boolean, default: false },
   activeConn:  { type: Object, default: null },
+  docsActive:  { type: Boolean, default: false },
 })
 
-defineEmits(['new-connection', 'select', 'edit', 'delete'])
+defineEmits(['new-connection', 'select', 'edit', 'delete', 'docs'])
 
 const { isLight, toggleTheme } = useTheme()
 
