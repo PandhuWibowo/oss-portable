@@ -4,7 +4,27 @@ This guide walks you through running Anvesa Vestra locally for the first time.
 
 ---
 
-## Prerequisites
+## Option A — Docker (Quickest)
+
+No toolchain needed. Pull the pre-built image and run it:
+
+```bash
+docker run -d \
+  --name anveesa-vestra \
+  -p 80:80 \
+  -v anveesa-data:/data \
+  pandhuwibowo/anveesa-vestra:latest
+```
+
+Open [http://localhost](http://localhost) in your browser, then jump straight to [step 4](#4-add-your-first-connection).
+
+The `-v anveesa-data:/data` flag persists your SQLite database across container restarts. See [Deployment](./deployment.md) for more Docker options.
+
+---
+
+## Option B — From Source
+
+### Prerequisites
 
 | Requirement | Version | Notes |
 |---|---|---|
@@ -12,18 +32,14 @@ This guide walks you through running Anvesa Vestra locally for the first time.
 | Bun | 1.0+ | [bun.sh](https://bun.sh) — or use npm/Node 18+ |
 | Make | any | Available on macOS/Linux by default |
 
----
-
-## 1. Clone the Repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-org/anvesa-vestra.git
-cd anvesa-vestra
+git clone https://github.com/PandhuWibowo/anveesa-vestra.git
+cd anveesa-vestra
 ```
 
----
-
-## 2. Install Frontend Dependencies
+### 2. Install Frontend Dependencies
 
 ```bash
 cd web
@@ -33,9 +49,7 @@ cd ..
 
 > Using npm? Run `npm install` instead of `bun install`.
 
----
-
-## 3. Start the Development Server
+### 3. Start the Development Server
 
 ```bash
 make dev
@@ -47,7 +61,7 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ---
 
-## 4. Add Your First Connection
+## Add Your First Connection
 
 When the app loads you will see the welcome screen. Click **New Connection** (or press `N`) to open the connection form.
 
@@ -83,7 +97,7 @@ See [Managing Connections](./connections.md) for Cloudflare R2 and MinIO credent
 
 ---
 
-## 5. Browse Your Bucket
+## Browse Your Bucket
 
 Click any saved connection in the sidebar to open the file browser. From there you can:
 
@@ -95,23 +109,30 @@ See [File Browser](./browser.md) for a full feature walkthrough.
 
 ---
 
-## Project Layout
+## Project Layout (Source)
 
 ```
-anvesa-vestra/
-├── server/          Go backend — API server and database
-│   ├── main.go      Route definitions and server startup
-│   ├── db/          SQLite schema and initialization
-│   ├── handlers/    Request handlers (gcp.go, aws.go)
-│   └── middleware/  CORS middleware
-├── web/             Vue 3 frontend
+anveesa-vestra/
+├── server/              Go backend — API server and database
+│   ├── main.go          Route definitions and server startup
+│   ├── db/              SQLite schema and initialization
+│   ├── handlers/        Request handlers (gcp.go, aws.go, huawei.go)
+│   └── middleware/      CORS middleware
+├── web/                 Vue 3 frontend
 │   ├── src/
 │   │   ├── App.vue              Root component and navigation logic
 │   │   ├── components/          UI and feature components
 │   │   └── composables/         Shared state and API logic
 │   └── vite.config.js           Dev server and proxy config
-├── docs/            This documentation
-└── Makefile         Dev and build commands
+├── docs/                This documentation
+├── deploy/              Container runtime configuration
+│   ├── nginx.conf       nginx: serve frontend + proxy /api to Go server
+│   └── supervisord.conf Process manager: runs nginx and Go server together
+├── .github/
+│   └── workflows/
+│       └── docker.yml   CI/CD: build and push Docker image to DockerHub
+├── Dockerfile           Multi-stage image build (bun → go → nginx)
+└── Makefile             Dev and build commands
 ```
 
 ---

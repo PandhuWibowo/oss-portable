@@ -1,10 +1,97 @@
 # Deployment
 
-Anvesa Vestra can be built into a single Go binary that serves both the API and the pre-built frontend as static files. No Node.js or Bun runtime is needed in production.
+Anvesa Vestra can be deployed in two ways: as a **Docker container** (recommended — no toolchain required) or as a **native binary** built from source.
 
 ---
 
-## Build
+## Docker (Recommended)
+
+A pre-built image is published to DockerHub on every push to `main`. It bundles the Go API server and the Vue frontend in a single container (nginx + supervisord).
+
+### Pull and Run
+
+```bash
+docker run -d \
+  --name anveesa-vestra \
+  -p 80:80 \
+  -v anveesa-data:/data \
+  pandhuwibowo/anveesa-vestra:latest
+```
+
+Open [http://localhost](http://localhost) in your browser.
+
+| Flag | Purpose |
+|---|---|
+| `-p 80:80` | Expose the app on host port 80 |
+| `-v anveesa-data:/data` | Persist the SQLite database across restarts |
+
+### Available Tags
+
+| Tag | Description |
+|---|---|
+| `latest` | Latest build from `main` |
+| `main` | Same as `latest` |
+| `v1.2.3` | Specific release version |
+
+### Container Management
+
+```bash
+# View live logs
+docker logs -f anveesa-vestra
+
+# Stop
+docker stop anveesa-vestra
+
+# Start again
+docker start anveesa-vestra
+
+# Remove container (data volume is kept)
+docker rm -f anveesa-vestra
+```
+
+### Data Persistence
+
+The SQLite database (`data.db`) is written to `/data` inside the container. The named volume `anveesa-data` ensures it survives container removal. To inspect or back it up:
+
+```bash
+# Find volume path on disk
+docker volume inspect anveesa-data
+
+# Backup
+docker run --rm -v anveesa-data:/data -v $(pwd):/backup alpine \
+  tar czf /backup/anveesa-data-backup.tar.gz -C /data .
+```
+
+### Building the Image Locally
+
+```bash
+docker build -t anveesa-vestra:local .
+docker run -d -p 80:80 -v anveesa-data:/data anveesa-vestra:local
+```
+
+---
+
+## CI/CD — GitHub Actions → DockerHub
+
+The repository includes a workflow at `.github/workflows/docker.yml` that automatically builds and pushes the image to DockerHub.
+
+**Triggers:**
+- Push to `main` → builds and pushes `latest` + `main` tags
+- Version tag (`v1.2.3`) → also pushes semver tags (`1.2.3`, `1.2`)
+- Pull requests → build-only (no push), to verify the image compiles
+
+**Required secrets** (set in _Settings → Secrets → Actions_):
+
+| Secret | Value |
+|---|---|
+| `DOCKERHUB_USERNAME` | Your DockerHub username |
+| `DOCKERHUB_TOKEN` | DockerHub access token (not your password) |
+
+The workflow builds multi-platform images (`linux/amd64` + `linux/arm64`) using Docker Buildx and caches layers via GitHub Actions cache for faster subsequent builds.
+
+---
+
+## Build from Source
 
 Run the following from the project root:
 
@@ -20,7 +107,7 @@ The resulting `bin/server` binary is self-contained for the backend. Copy it alo
 
 ---
 
-## Running the Production Binary
+### Running the Production Binary
 
 ```bash
 ./bin/server
@@ -32,7 +119,7 @@ The server listens on port **8080** by default. The SQLite database is created a
 
 ---
 
-## Serving the Frontend
+### Serving the Frontend
 
 In development the Vite dev server proxies API requests. In production you have two options:
 
@@ -82,7 +169,7 @@ This packages everything into one binary — no separate static file deployment 
 
 ---
 
-## Running as a System Service
+### Running as a System Service
 
 ### systemd (Linux)
 
@@ -145,7 +232,7 @@ launchctl load ~/Library/LaunchAgents/com.anvesa.vestra.plist
 
 ---
 
-## Data Persistence
+### Data Persistence
 
 The SQLite database file (`server/data.db`) holds all saved connections. In production, ensure this path is:
 
@@ -155,7 +242,7 @@ The SQLite database file (`server/data.db`) holds all saved connections. In prod
 
 ---
 
-## Environment Reference
+### Environment Reference
 
 | Variable | Default | Description |
 |---|---|---|
@@ -163,7 +250,7 @@ The SQLite database file (`server/data.db`) holds all saved connections. In prod
 
 ---
 
-## Cross-Platform Builds
+### Cross-Platform Builds
 
 To build for a different OS/architecture from macOS:
 

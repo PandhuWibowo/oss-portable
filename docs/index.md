@@ -11,7 +11,7 @@ Most cloud consoles are built for administrators, not daily users. They are slow
 - **Self-hosted** — runs entirely on your machine or server. No data leaves your infrastructure.
 - **Multi-provider** — connect GCS, S3, Cloudflare R2, and MinIO from one interface.
 - **Credential-safe** — credentials are stored locally in SQLite and never sent to a third-party service.
-- **Lightweight** — a single Go binary + static Vue files. No Docker required.
+- **Lightweight** — a single Go binary + static Vue files. Run natively or via Docker.
 
 ---
 
@@ -57,12 +57,19 @@ Most cloud consoles are built for administrators, not daily users. They are slow
 
 ## Quick Start
 
-```bash
-# Clone the repository
-git clone https://github.com/your-org/anvesa-vestra.git
-cd anvesa-vestra
+**Option A — Docker (recommended)**
 
-# Start both backend and frontend together
+```bash
+docker run -d -p 80:80 -v anveesa-data:/data pandhuwibowo/anveesa-vestra:latest
+```
+
+Open [http://localhost](http://localhost) in your browser.
+
+**Option B — From source**
+
+```bash
+git clone https://github.com/PandhuWibowo/anveesa-vestra.git
+cd anveesa-vestra
 make dev
 ```
 
@@ -80,3 +87,5 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 | Frontend | Vue 3, Vite 5, Composition API |
 | Styling | Plain CSS with custom properties |
 | Package manager | Bun (or npm) |
+| Container | Docker + nginx + supervisord |
+| CI/CD | GitHub Actions → DockerHub |
