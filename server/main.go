@@ -67,6 +67,40 @@ func main() {
 	mux.HandleFunc("/api/huawei/bucket/metadata",        middleware.CORS(handlers.GetHuaweiMetadata))
 	mux.HandleFunc("/api/huawei/bucket/metadata/update", middleware.CORS(handlers.UpdateHuaweiMetadata))
 
+	// ── Alibaba Cloud OSS connections ─────────────────────────────
+	mux.HandleFunc("/api/alibaba/connections",  middleware.CORS(handlers.ListAlibaba))
+	mux.HandleFunc("/api/alibaba/connection",   middleware.CORS(handlers.CreateAlibaba))
+	mux.HandleFunc("/api/alibaba/connection/",  middleware.CORS(handlers.AlibabaConnByID))
+	mux.HandleFunc("/api/alibaba/test",         middleware.CORS(handlers.TestAlibaba))
+
+	// ── Alibaba OSS bucket operations ─────────────────────────────
+	mux.HandleFunc("/api/alibaba/bucket/browse",          middleware.CORS(handlers.BrowseAlibabaBucket))
+	mux.HandleFunc("/api/alibaba/bucket/objects",         middleware.CORS(handlers.ListAlibabaObjects))
+	mux.HandleFunc("/api/alibaba/bucket/download",        middleware.CORS(handlers.AlibabaDownloadURL))
+	mux.HandleFunc("/api/alibaba/bucket/delete",          middleware.CORS(handlers.DeleteAlibabaObject))
+	mux.HandleFunc("/api/alibaba/bucket/copy",            middleware.CORS(handlers.CopyAlibabaObject))
+	mux.HandleFunc("/api/alibaba/bucket/upload",          middleware.CORS(handlers.UploadAlibabaObject))
+	mux.HandleFunc("/api/alibaba/bucket/stats",           middleware.CORS(handlers.AlibabaBucketStats))
+	mux.HandleFunc("/api/alibaba/bucket/metadata",        middleware.CORS(handlers.GetAlibabaMetadata))
+	mux.HandleFunc("/api/alibaba/bucket/metadata/update", middleware.CORS(handlers.UpdateAlibabaMetadata))
+
+	// ── Azure Blob Storage connections ────────────────────────────
+	mux.HandleFunc("/api/azure/connections",  middleware.CORS(handlers.ListAzure))
+	mux.HandleFunc("/api/azure/connection",   middleware.CORS(handlers.CreateAzure))
+	mux.HandleFunc("/api/azure/connection/",  middleware.CORS(handlers.AzureConnByID))
+	mux.HandleFunc("/api/azure/test",         middleware.CORS(handlers.TestAzure))
+
+	// ── Azure Blob Storage bucket operations ──────────────────────
+	mux.HandleFunc("/api/azure/bucket/browse",          middleware.CORS(handlers.BrowseAzureBucket))
+	mux.HandleFunc("/api/azure/bucket/objects",         middleware.CORS(handlers.ListAzureObjects))
+	mux.HandleFunc("/api/azure/bucket/download",        middleware.CORS(handlers.AzureDownloadURL))
+	mux.HandleFunc("/api/azure/bucket/delete",          middleware.CORS(handlers.DeleteAzureObject))
+	mux.HandleFunc("/api/azure/bucket/copy",            middleware.CORS(handlers.CopyAzureObject))
+	mux.HandleFunc("/api/azure/bucket/upload",          middleware.CORS(handlers.UploadAzureObject))
+	mux.HandleFunc("/api/azure/bucket/stats",           middleware.CORS(handlers.AzureBucketStats))
+	mux.HandleFunc("/api/azure/bucket/metadata",        middleware.CORS(handlers.GetAzureMetadata))
+	mux.HandleFunc("/api/azure/bucket/metadata/update", middleware.CORS(handlers.UpdateAzureMetadata))
+
 	// ── Docs ──────────────────────────────────────────────────────
 	mux.HandleFunc("/api/docs/", middleware.CORS(handlers.ServeDocs))
 

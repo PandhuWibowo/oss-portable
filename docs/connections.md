@@ -9,9 +9,9 @@ A **connection** is a named reference to a bucket along with the credentials nee
 | Field | Required | Description |
 |---|---|---|
 | Name | Yes | A human-readable label shown in the sidebar |
-| Provider | Yes | `GCS` or `AWS` (set on creation, cannot be changed) |
-| Bucket | Yes | The bucket name (without protocol prefix) |
-| Credentials | Depends | JSON key for GCS; JSON object for AWS |
+| Provider | Yes | `gcp`, `aws`, `huawei`, `alibaba`, or `azure` — set on creation, cannot be changed |
+| Bucket | Yes | The bucket (or container) name without any protocol prefix |
+| Credentials | Depends | JSON credentials object — format varies per provider |
 
 ---
 
@@ -54,15 +54,13 @@ Paste the full contents of the downloaded JSON key file into the Credentials fie
 
 ### Public Buckets
 
-If your bucket is publicly readable, leave the Credentials field empty. Anvesa Vestra will access it without authentication. Note that upload, delete, and metadata-edit operations require credentials regardless of bucket visibility.
+If your bucket is publicly readable, leave the Credentials field empty. Anveesa Vestra will access it without authentication. Upload, delete, and metadata-edit operations still require credentials.
 
 ---
 
 ## Amazon S3
 
 ### Credential Format
-
-Provide a JSON object with your AWS credentials:
 
 ```json
 {
@@ -133,16 +131,105 @@ MinIO also uses the S3-compatible API. Use your MinIO server's address as the en
 }
 ```
 
-> For self-signed TLS, ensure the MinIO server certificate is trusted on the machine running Anvesa Vestra's backend.
+> For self-signed TLS, ensure the MinIO server certificate is trusted on the machine running Anveesa Vestra's backend.
+
+---
+
+## Huawei OBS
+
+### Obtaining Credentials
+
+1. Log in to [Huawei Cloud Console](https://console.huaweicloud.com).
+2. Go to **My Credentials → Access Keys → Create Access Key**.
+3. Download the CSV containing your AK/SK pair.
+4. Find your OBS endpoint in **OBS Console → Bucket → Overview → Endpoint**.
+
+### Credential Format
+
+```json
+{
+  "access_key_id": "your-access-key",
+  "secret_access_key": "your-secret-key",
+  "endpoint": "https://obs.cn-north-4.myhuaweicloud.com",
+  "region": "cn-north-4"
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `access_key_id` | Yes | Huawei Cloud AK |
+| `secret_access_key` | Yes | Huawei Cloud SK |
+| `endpoint` | Yes | OBS service endpoint for your region |
+| `region` | No | Region identifier (e.g. `cn-north-4`) |
+
+---
+
+## Alibaba Cloud OSS
+
+### Obtaining Credentials
+
+1. Log in to [Alibaba Cloud Console](https://console.aliyun.com).
+2. Go to **AccessKey Management → Create AccessKey**.
+3. Find your OSS endpoint in **OSS Console → Bucket → Overview → Endpoint**.
+
+### Credential Format
+
+```json
+{
+  "access_key_id": "your-access-key-id",
+  "secret_access_key": "your-access-key-secret",
+  "endpoint": "https://oss-cn-hangzhou.aliyuncs.com",
+  "region": "cn-hangzhou"
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `access_key_id` | Yes | Alibaba Cloud AccessKey ID |
+| `secret_access_key` | Yes | Alibaba Cloud AccessKey Secret |
+| `endpoint` | Yes | OSS endpoint for your region |
+| `region` | No | Region identifier (e.g. `cn-hangzhou`) |
+
+---
+
+## Azure Blob Storage
+
+### Obtaining Credentials
+
+1. Open [Azure Portal](https://portal.azure.com) → **Storage accounts**.
+2. Select your storage account.
+3. Go to **Security + networking → Access keys**.
+4. Copy **Storage account name** and either **key1** or **key2**.
+
+> The **container** name (used in the Bucket field) is found under **Data storage → Containers** in your storage account.
+
+### Credential Format
+
+```json
+{
+  "account_name": "mystorageaccount",
+  "account_key": "base64encodedkey=="
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `account_name` | Yes | Azure Storage account name |
+| `account_key` | Yes | Base64-encoded storage account key |
 
 ---
 
 ## Testing a Connection
 
-Before saving, click **Test Connection**. The backend will:
+Before saving, click **Test Connection**. The backend verifies access by performing a lightweight bucket/container probe:
 
-- **GCS**: Attempt to list the first object in the bucket using the provided credentials.
-- **AWS/S3**: Run `HeadBucket` to verify bucket access.
+| Provider | Test operation |
+|---|---|
+| GCS | List first object in the bucket |
+| AWS / R2 / MinIO | `HeadBucket` |
+| Huawei OBS | List bucket metadata |
+| Alibaba OSS | `GetBucketInfo` |
+| Azure | List containers / check container existence |
 
 A green notice confirms success. A red notice shows the error returned by the cloud provider.
 
@@ -150,9 +237,7 @@ A green notice confirms success. A red notice shows the error returned by the cl
 
 ## Editing a Connection
 
-Click the **pencil icon** next to any connection in the sidebar to open the edit form. The provider tab is locked — you cannot switch from GCS to AWS on an existing connection. All other fields (name, bucket, credentials) can be updated.
-
-After editing, Anvesa Vestra re-tests the connection before saving.
+Click the **pencil icon** next to any connection in the sidebar to open the edit form. The provider card is locked — you cannot switch providers on an existing connection. All other fields (name, bucket, credentials) can be updated.
 
 ---
 

@@ -8,7 +8,7 @@
         </svg>
       </div>
       <div>
-        <div class="brand-name"><span class="brand-anvesa">Anvesa</span> Vestra</div>
+        <div class="brand-name"><span class="brand-anvesa">Anveesa</span> Vestra</div>
         <div class="brand-sub">Cloud storage manager</div>
       </div>
     </div>
@@ -35,6 +35,20 @@
         />
       </div>
 
+      <!-- Provider filter chips -->
+      <div class="prov-filter" v-if="availableProviders.length > 1">
+        <button
+          v-for="prov in availableProviders"
+          :key="prov"
+          class="prov-chip"
+          :class="[`prov-chip--${prov}`, { 'prov-chip--active': filterProviders.has(prov) }]"
+          @click="toggleFilter(prov)"
+        >
+          <ProviderIcon :provider="prov" :size="10" />
+          {{ PROV_SHORT[prov] ?? prov }}
+        </button>
+      </div>
+
       <!-- Skeleton while loading -->
       <SkeletonLoader v-if="loading" :count="3" height="42px" />
 
@@ -55,7 +69,9 @@
           :class="{ 'is-active': activeConn?.id === c.id && activeConn?.provider === c.provider }"
           @click="$emit('select', c)"
         >
-          <span class="conn-dot" :class="`conn-dot--${c.provider}`"></span>
+          <div class="conn-badge" :class="`conn-badge--${c.provider}`">
+            <ProviderIcon :provider="c.provider" :size="11" />
+          </div>
           <div class="conn-item__body">
             <div class="conn-item__name">{{ c.name }}</div>
             <div class="conn-item__bucket">{{ c.bucket }}</div>
@@ -116,7 +132,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import SkeletonLoader from '../ui/SkeletonLoader.vue'
-import { useTheme } from '../../composables/useTheme.js'
+import ProviderIcon   from '../ui/ProviderIcon.vue'
+import { useTheme }   from '../../composables/useTheme.js'
+
+const PROV_SHORT = { gcp: 'GCS', aws: 'S3', huawei: 'OBS', alibaba: 'OSS', azure: 'Azure' }
 
 const props = defineProps({
   connections: { type: Array, default: () => [] },
@@ -129,13 +148,26 @@ defineEmits(['new-connection', 'select', 'edit', 'delete', 'docs'])
 
 const { isLight, toggleTheme } = useTheme()
 
-const query = ref('')
+const query          = ref('')
+const filterProviders = ref(new Set())
+
+const availableProviders = computed(() => {
+  const seen = new Set()
+  for (const c of props.connections) seen.add(c.provider)
+  return [...seen]
+})
+
+function toggleFilter(prov) {
+  const next = new Set(filterProviders.value)
+  next.has(prov) ? next.delete(prov) : next.add(prov)
+  filterProviders.value = next
+}
 
 const filtered = computed(() => {
+  let list = props.connections
+  if (filterProviders.value.size > 0)
+    list = list.filter(c => filterProviders.value.has(c.provider))
   const q = query.value.toLowerCase().trim()
-  if (!q) return props.connections
-  return props.connections.filter(c =>
-    c.name.toLowerCase().includes(q) || c.bucket.toLowerCase().includes(q)
-  )
+  return q ? list.filter(c => c.name.toLowerCase().includes(q) || c.bucket.toLowerCase().includes(q)) : list
 })
 </script>

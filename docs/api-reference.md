@@ -1,6 +1,6 @@
 # API Reference
 
-The Anvesa Vestra backend exposes a REST API on port **8080**. All endpoints accept and return `application/json` unless noted otherwise. CORS is enabled for all origins in the default configuration.
+The Anveesa Vestra backend exposes a REST API on port **8080**. All endpoints accept and return `application/json` unless noted otherwise. CORS is enabled for all origins in the default configuration.
 
 ---
 
@@ -24,7 +24,7 @@ Most `POST` endpoints that operate on bucket objects share these fields:
 
 | Field | Type | Description |
 |---|---|---|
-| `bucket` | string | Bucket name |
+| `bucket` | string | Bucket (or container) name |
 | `credentials` | string | JSON-encoded credentials (see [Connections](./connections.md)) |
 
 ---
@@ -58,7 +58,6 @@ Returns all saved GCS connections.
 ```
 POST /api/gcp/connection
 ```
-Tests credentials first. Saves only on success.
 
 **Request Body**
 ```json
@@ -80,9 +79,6 @@ Tests credentials first. Saves only on success.
 ```
 PUT /api/gcp/connection/{id}
 ```
-Re-tests credentials before saving the update.
-
-**Request Body** — same shape as create.
 
 **Response** `200 OK`
 ```json
@@ -107,7 +103,6 @@ DELETE /api/gcp/connection/{id}
 ```
 POST /api/gcp/test
 ```
-Tests credentials without saving.
 
 **Request Body**
 ```json
@@ -122,22 +117,22 @@ Tests credentials without saving.
 { "ok": true }
 ```
 
-**Error Response** `400`
-```json
-{ "error": "storage: bucket doesn't exist" }
-```
-
 ---
 
-### Bucket Operations
+### Bucket Operations (GCS)
 
-#### Browse Bucket (GCS)
-```
-POST /api/gcp/bucket/browse
-```
-Returns a single page of objects and folder prefixes under the given prefix.
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/gcp/bucket/browse` | Browse objects (paginated) |
+| `POST` | `/api/gcp/bucket/upload` | Upload file (multipart form) |
+| `POST` | `/api/gcp/bucket/download` | Get signed download URL |
+| `POST` | `/api/gcp/bucket/delete` | Delete object |
+| `POST` | `/api/gcp/bucket/copy` | Copy or rename object |
+| `POST` | `/api/gcp/bucket/stats` | Bucket statistics |
+| `POST` | `/api/gcp/bucket/metadata` | Get object metadata |
+| `POST` | `/api/gcp/bucket/metadata/update` | Update object metadata |
 
-**Request Body**
+**Browse request body**
 ```json
 {
   "bucket": "my-bucket",
@@ -147,190 +142,7 @@ Returns a single page of objects and folder prefixes under the given prefix.
 }
 ```
 
-**Response**
-```json
-{
-  "prefix": "images/2024/",
-  "entries": [
-    { "name": "images/2024/",     "type": "prefix", "size": 0,      "updated": "" },
-    { "name": "images/2024/photo.jpg", "type": "object", "size": 204800, "updated": "2024-01-15T10:00:00Z" }
-  ],
-  "next_page_token": "CjEKL2ltYWdlcy8yMDI0L..."
-}
-```
-
-Pass `next_page_token` back in the next request to load the following page. An empty `next_page_token` means the listing is complete.
-
----
-
-#### Upload File (GCS)
-```
-POST /api/gcp/bucket/upload
-```
-Multipart form upload.
-
-**Form Fields**
-| Field | Description |
-|---|---|
-| `bucket` | Bucket name |
-| `credentials` | JSON credentials string |
-| `prefix` | Destination folder prefix (e.g. `images/2024/`) |
-| `file` | File binary (one or more) |
-
-**Response** `200 OK`
-```json
-{ "ok": true }
-```
-
----
-
-#### Download URL (GCS)
-```
-POST /api/gcp/bucket/download
-```
-Returns a signed URL that grants read access for 15 minutes.
-
-**Request Body**
-```json
-{
-  "bucket": "my-bucket",
-  "credentials": "...",
-  "object": "images/2024/photo.jpg"
-}
-```
-
-**Response**
-```json
-{
-  "url": "https://storage.googleapis.com/my-bucket/images/2024/photo.jpg?X-Goog-Signature=..."
-}
-```
-
-> For public objects without credentials, returns a plain public URL.
-
----
-
-#### Delete Object (GCS)
-```
-POST /api/gcp/bucket/delete
-```
-
-**Request Body**
-```json
-{
-  "bucket": "my-bucket",
-  "credentials": "...",
-  "object": "images/2024/photo.jpg"
-}
-```
-
-**Response** `200 OK`
-```json
-{ "ok": true }
-```
-
----
-
-#### Copy / Rename Object (GCS)
-```
-POST /api/gcp/bucket/copy
-```
-
-**Request Body**
-```json
-{
-  "bucket": "my-bucket",
-  "credentials": "...",
-  "source": "images/2024/old-name.jpg",
-  "destination": "images/2024/new-name.jpg",
-  "delete_source": true
-}
-```
-
-Set `delete_source: true` to rename (copy then delete). Set `false` to copy only.
-
-**Response** `200 OK`
-```json
-{ "ok": true }
-```
-
----
-
-#### Bucket Statistics (GCS)
-```
-POST /api/gcp/bucket/stats
-```
-Samples up to 1,000 objects to estimate counts and size.
-
-**Request Body**
-```json
-{
-  "bucket": "my-bucket",
-  "credentials": "..."
-}
-```
-
-**Response**
-```json
-{
-  "object_count": 842,
-  "total_size": 10485760,
-  "truncated": false
-}
-```
-
----
-
-#### Get Object Metadata (GCS)
-```
-POST /api/gcp/bucket/metadata
-```
-
-**Request Body**
-```json
-{
-  "bucket": "my-bucket",
-  "credentials": "...",
-  "object": "images/2024/photo.jpg"
-}
-```
-
-**Response**
-```json
-{
-  "content_type": "image/jpeg",
-  "cache_control": "public, max-age=86400",
-  "metadata": { "author": "alice" },
-  "size": 204800,
-  "updated": "2024-01-15T10:00:00Z",
-  "etag": "\"abc123\"",
-  "md5": "rL0Y20zC+Fzt72VPzMSk2A=="
-}
-```
-
----
-
-#### Update Object Metadata (GCS)
-```
-POST /api/gcp/bucket/metadata/update
-```
-
-**Request Body**
-```json
-{
-  "bucket": "my-bucket",
-  "credentials": "...",
-  "object": "images/2024/photo.jpg",
-  "content_type": "image/jpeg",
-  "cache_control": "public, max-age=3600",
-  "metadata": { "author": "bob" }
-}
-```
-
-**Response** `200 OK`
-```json
-{ "ok": true }
-```
+Pass `next_page_token` back in subsequent requests to page through results. An empty token means the listing is complete.
 
 ---
 
@@ -362,6 +174,93 @@ All AWS endpoints mirror the GCS endpoints under the `/api/aws/` prefix. The cre
 | `POST` | `/api/aws/bucket/metadata/update` | Update object metadata |
 
 > AWS metadata updates are implemented as a copy-to-self with `MetadataDirective: REPLACE` because S3 does not allow in-place metadata edits.
+
+---
+
+## Huawei OBS Endpoints
+
+All Huawei endpoints follow the same pattern under `/api/huawei/`. See [Managing Connections](./connections.md#huawei-obs) for the credential format.
+
+### Connections
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/huawei/connections` | List saved OBS connections |
+| `POST` | `/api/huawei/connection` | Create OBS connection |
+| `PUT` | `/api/huawei/connection/{id}` | Update OBS connection |
+| `DELETE` | `/api/huawei/connection/{id}` | Delete OBS connection |
+| `POST` | `/api/huawei/test` | Test credentials |
+
+### Bucket Operations
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/huawei/bucket/browse` | Browse objects (paginated) |
+| `POST` | `/api/huawei/bucket/upload` | Upload file (multipart form) |
+| `POST` | `/api/huawei/bucket/download` | Get presigned download URL |
+| `POST` | `/api/huawei/bucket/delete` | Delete object |
+| `POST` | `/api/huawei/bucket/copy` | Copy or rename object |
+| `POST` | `/api/huawei/bucket/stats` | Bucket statistics |
+| `POST` | `/api/huawei/bucket/metadata` | Get object metadata |
+| `POST` | `/api/huawei/bucket/metadata/update` | Update object metadata |
+
+---
+
+## Alibaba Cloud OSS Endpoints
+
+All Alibaba endpoints follow the same pattern under `/api/alibaba/`. See [Managing Connections](./connections.md#alibaba-cloud-oss) for the credential format.
+
+### Connections
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/alibaba/connections` | List saved OSS connections |
+| `POST` | `/api/alibaba/connection` | Create OSS connection |
+| `PUT` | `/api/alibaba/connection/{id}` | Update OSS connection |
+| `DELETE` | `/api/alibaba/connection/{id}` | Delete OSS connection |
+| `POST` | `/api/alibaba/test` | Test credentials |
+
+### Bucket Operations
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/alibaba/bucket/browse` | Browse objects (paginated) |
+| `POST` | `/api/alibaba/bucket/upload` | Upload file (multipart form) |
+| `POST` | `/api/alibaba/bucket/download` | Get presigned download URL |
+| `POST` | `/api/alibaba/bucket/delete` | Delete object |
+| `POST` | `/api/alibaba/bucket/copy` | Copy or rename object |
+| `POST` | `/api/alibaba/bucket/stats` | Bucket statistics |
+| `POST` | `/api/alibaba/bucket/metadata` | Get object metadata |
+| `POST` | `/api/alibaba/bucket/metadata/update` | Update object metadata |
+
+---
+
+## Azure Blob Storage Endpoints
+
+All Azure endpoints follow the same pattern under `/api/azure/`. See [Managing Connections](./connections.md#azure-blob-storage) for the credential format.
+
+### Connections
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/api/azure/connections` | List saved Azure connections |
+| `POST` | `/api/azure/connection` | Create Azure connection |
+| `PUT` | `/api/azure/connection/{id}` | Update Azure connection |
+| `DELETE` | `/api/azure/connection/{id}` | Delete Azure connection |
+| `POST` | `/api/azure/test` | Test credentials |
+
+### Container Operations
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/azure/bucket/browse` | Browse blobs (paginated) |
+| `POST` | `/api/azure/bucket/upload` | Upload blob (multipart form) |
+| `POST` | `/api/azure/bucket/download` | Get SAS download URL |
+| `POST` | `/api/azure/bucket/delete` | Delete blob |
+| `POST` | `/api/azure/bucket/copy` | Copy or rename blob |
+| `POST` | `/api/azure/bucket/stats` | Container statistics |
+| `POST` | `/api/azure/bucket/metadata` | Get blob metadata |
+| `POST` | `/api/azure/bucket/metadata/update` | Update blob metadata |
 
 ---
 

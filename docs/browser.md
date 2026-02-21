@@ -1,6 +1,6 @@
 # File Browser
 
-The file browser is the main workspace in Anvesa Vestra. Select any connection from the sidebar to open it.
+The file browser is the main workspace in Anveesa Vestra. Select any connection from the sidebar to open it.
 
 ---
 
@@ -14,7 +14,7 @@ Click any segment in the breadcrumb to jump back to that level. Click the bucket
 
 ### Pagination
 
-Anvesa Vestra loads **200 objects per page**. As you scroll down, the next page is fetched automatically when the sentinel row at the bottom comes into view (infinite scroll). A spinner appears during loading; "All files loaded" appears when the list is complete.
+Anveesa Vestra loads **200 objects per page**. As you scroll down, the next page is fetched automatically when the sentinel row at the bottom comes into view (infinite scroll). A spinner appears during loading.
 
 ---
 
@@ -25,6 +25,7 @@ Anvesa Vestra loads **200 objects per page**. As you scroll down, the next page 
 | Upload | Open the file picker (also accepts drag-and-drop onto the table) |
 | New Folder | Create an empty folder (uploads a hidden `.keep` placeholder) |
 | Stats | Fetch and display object count and total bucket size |
+| Refresh | Reload the current folder listing |
 
 ---
 
@@ -39,7 +40,7 @@ Anvesa Vestra loads **200 objects per page**. As you scroll down, the next page 
 
 ### Download
 
-Click the **download icon** in a file's action column. Anvesa Vestra generates a **signed URL** (GCS) or **presigned URL** (S3) that expires after 15 minutes and opens the download in a new tab.
+Click the **download icon** in a file's action column. Anveesa Vestra generates a signed URL (GCS), presigned URL (S3/OBS/OSS), or a direct SAS URL (Azure) that expires after 15 minutes and opens the download in a new tab.
 
 > Signed URLs bypass public-access restrictions — the file does not need to be publicly readable.
 
@@ -49,12 +50,10 @@ Click the **trash icon** next to a file. A confirmation dialog appears before th
 
 ### Rename / Move
 
-Click the **rename icon** (double-arrow) next to a file to open the rename dialog. Enter the new name and click **Rename**. The operation is implemented as a **copy + delete**:
+Click the **rename icon** next to a file to open the rename dialog. Enter the new name and click **Move**. The operation is implemented as a **copy + delete**:
 
 1. The object is copied to `current-prefix/new-name`.
 2. The original object is deleted.
-
-Moving a file to a different folder is not yet supported from this dialog — use copy path + re-upload for cross-folder moves.
 
 ---
 
@@ -64,18 +63,20 @@ Moving a file to a different folder is not yet supported from this dialog — us
 
 Click the **checkbox** on any row to select it. Click the **header checkbox** to select all files currently loaded on the page.
 
-The **selection bar** appears at the bottom of the screen when one or more files are selected. It shows the count of selected files and offers:
+The **selection bar** appears at the top of the file list when one or more files are selected. It shows the count of selected files and offers:
 
 | Action | Description |
 |---|---|
-| Delete selected | Delete all selected files with a single confirmation |
-| Download selected | Download each selected file sequentially (300 ms apart to avoid rate limits) |
+| Download all | Download each selected file sequentially |
+| Delete all | Delete all selected files with a single confirmation |
 
 ---
 
 ## Search
 
 Type in the **search box** above the file list to filter the currently loaded objects by name. The filter is applied client-side against the visible page — it does not search the full bucket. Scroll down to load more objects, then search again for broader results.
+
+Press `/` to focus the search box from anywhere in the browser. Press `Escape` to clear it.
 
 ---
 
@@ -93,7 +94,7 @@ Click the **info icon** (ℹ) next to any file to open its metadata panel. The p
 | ETag | No | Entity tag for cache validation |
 | MD5 | No (GCS only) | Base64-encoded MD5 hash |
 
-Click **Save** to write changes back to the bucket. For S3-compatible providers, metadata is updated via a copy-to-self operation with `MetadataDirective: REPLACE`.
+Click **Save** to write changes back to the bucket. For S3-compatible providers and OBS/OSS, metadata is updated via a copy-to-self operation with `MetadataDirective: REPLACE`.
 
 ---
 
@@ -110,7 +111,13 @@ If the bucket contains more than 1,000 objects the result is marked as **estimat
 
 ## Copying a File Path
 
-Click the **copy path icon** (clipboard) on any file row to copy its full object key (e.g. `images/2024/photo.jpg`) to the clipboard. A toast confirms the copy.
+Click the **copy path icon** (clipboard) on any file row to copy its full object path to the clipboard. The format depends on the provider:
+
+| Provider | Path format |
+|---|---|
+| GCS | `gs://bucket-name/path/to/file.txt` |
+| AWS / R2 / MinIO / OBS / OSS | `s3://bucket-name/path/to/file.txt` |
+| Azure | `az://container-name/path/to/file.txt` |
 
 ---
 
@@ -120,11 +127,22 @@ Drag one or more files from your desktop and drop them anywhere on the file tabl
 
 ---
 
-## Provider Badge
+## Provider Badge & Icon
 
-A colored badge in the browser header indicates which provider the active connection uses:
+The browser header shows a colored icon badge indicating which provider the active connection uses:
 
-- **GCS** — blue badge
-- **AWS** — orange badge
+| Provider | Badge label | Color |
+|---|---|---|
+| Google Cloud Storage | GCS | Blue |
+| Amazon S3 / R2 / MinIO | S3 | Amber |
+| Huawei OBS | OBS | Red |
+| Alibaba Cloud OSS | OSS | Orange |
+| Azure Blob Storage | Azure | Sky blue |
 
 The current bucket name and connection name are also shown in the header.
+
+---
+
+## Sidebar Provider Filter
+
+When you have connections from more than one provider, **filter chips** appear above the connection list in the sidebar. Click a chip to show only connections from that provider. Click it again to deselect. Multiple chips can be active simultaneously.

@@ -8,7 +8,7 @@
     <div class="browser-hd">
       <div class="browser-hd__left">
         <div class="browser-prov-icon" :class="`browser-prov-icon--${conn.provider}`">
-          {{ conn.provider === 'gcp' ? 'G' : 'A' }}
+          <ProviderIcon :provider="conn.provider" :size="16" />
         </div>
         <div style="min-width:0">
           <div class="browser-conn-name">
@@ -421,8 +421,9 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import BaseBadge  from '../ui/BaseBadge.vue'
-import BaseModal  from '../ui/BaseModal.vue'
+import BaseBadge    from '../ui/BaseBadge.vue'
+import BaseModal    from '../ui/BaseModal.vue'
+import ProviderIcon from '../ui/ProviderIcon.vue'
 import { useConnections }   from '../../composables/useConnections.js'
 import { useToast }         from '../../composables/useToast.js'
 import { useConfirm }       from '../../composables/useConfirm.js'
@@ -669,6 +670,8 @@ async function bulkDownload() {
 function copyPath(entry) {
   const path = props.conn.provider === 'gcp'
     ? `gs://${props.conn.bucket}/${entry.name}`
+    : props.conn.provider === 'azure'
+    ? `az://${props.conn.bucket}/${entry.name}`
     : `s3://${props.conn.bucket}/${entry.name}`
   navigator.clipboard?.writeText(path).then(
     () => toast.success('Path copied to clipboard'),

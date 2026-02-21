@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks you through running Anvesa Vestra locally for the first time.
+This guide walks you through running Anveesa Vestra locally for the first time.
 
 ---
 
@@ -16,7 +16,7 @@ docker run -d \
   pandhuwibowo/anveesa-vestra:latest
 ```
 
-Open [http://localhost](http://localhost) in your browser, then jump straight to [step 4](#4-add-your-first-connection).
+Open [http://localhost](http://localhost) in your browser, then jump straight to [step 4](#add-your-first-connection).
 
 The `-v anveesa-data:/data` flag persists your SQLite database across container restarts. See [Deployment](./deployment.md) for more Docker options.
 
@@ -63,11 +63,11 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ## Add Your First Connection
 
-When the app loads you will see the welcome screen. Click **New Connection** (or press `N`) to open the connection form.
+When the app loads you will see the welcome screen. Click **New Connection** to open the connection form. Select a provider card, fill in the fields, and click **Test Connection** before saving.
 
 ### Google Cloud Storage
 
-1. Select the **GCS** tab.
+1. Select the **Google Cloud Storage** card.
 2. Enter a **Connection name** (e.g. `my-production-bucket`).
 3. Paste your **GCS bucket name** (without `gs://`).
 4. Paste your **Service account JSON** key into the Credentials field.
@@ -76,9 +76,9 @@ When the app loads you will see the welcome screen. Click **New Connection** (or
 
 > For public buckets you can leave Credentials empty.
 
-### Amazon S3 / S3-Compatible
+### Amazon S3 / S3-Compatible (R2, MinIO)
 
-1. Select the **AWS** tab.
+1. Select the **AWS S3** card.
 2. Enter a **Connection name**.
 3. Enter your **S3 bucket name**.
 4. Paste a JSON credentials object:
@@ -93,7 +93,58 @@ When the app loads you will see the welcome screen. Click **New Connection** (or
 
 5. Click **Test Connection**, then **Save**.
 
-See [Managing Connections](./connections.md) for Cloudflare R2 and MinIO credential examples.
+For Cloudflare R2 or MinIO, add an `"endpoint"` key — see [Managing Connections](./connections.md#cloudflare-r2).
+
+### Huawei OBS
+
+1. Select the **Huawei OBS** card.
+2. Enter a **Connection name** and your **OBS bucket name**.
+3. Paste a JSON credentials object:
+
+```json
+{
+  "access_key_id": "your-ak",
+  "secret_access_key": "your-sk",
+  "endpoint": "https://obs.cn-north-4.myhuaweicloud.com",
+  "region": "cn-north-4"
+}
+```
+
+4. Click **Test Connection**, then **Save**.
+
+### Alibaba Cloud OSS
+
+1. Select the **Alibaba Cloud OSS** card.
+2. Enter a **Connection name** and your **OSS bucket name**.
+3. Paste a JSON credentials object:
+
+```json
+{
+  "access_key_id": "your-ak",
+  "secret_access_key": "your-sk",
+  "endpoint": "https://oss-cn-hangzhou.aliyuncs.com",
+  "region": "cn-hangzhou"
+}
+```
+
+4. Click **Test Connection**, then **Save**.
+
+### Azure Blob Storage
+
+1. Select the **Azure Blob Storage** card.
+2. Enter a **Connection name** and your **container name** (the Azure Blob container, not the storage account).
+3. Paste a JSON credentials object:
+
+```json
+{
+  "account_name": "mystorageaccount",
+  "account_key": "base64encodedkey=="
+}
+```
+
+4. Click **Test Connection**, then **Save**.
+
+> Find the account key in the Azure Portal → Storage account → **Security + networking → Access keys**.
 
 ---
 
@@ -116,7 +167,12 @@ anveesa-vestra/
 ├── server/              Go backend — API server and database
 │   ├── main.go          Route definitions and server startup
 │   ├── db/              SQLite schema and initialization
-│   ├── handlers/        Request handlers (gcp.go, aws.go, huawei.go)
+│   ├── handlers/        Request handlers per provider
+│   │   ├── gcp.go
+│   │   ├── aws.go
+│   │   ├── huawei.go
+│   │   ├── alibaba.go
+│   │   └── azure.go
 │   └── middleware/      CORS middleware
 ├── web/                 Vue 3 frontend
 │   ├── src/
@@ -141,5 +197,7 @@ anveesa-vestra/
 
 | Key | Action |
 |---|---|
-| `N` | Open the new connection form (when not typing in an input) |
 | `Escape` | Close modals and dialogs |
+| `/` | Focus the file search box (inside the browser) |
+| `R` | Refresh the current bucket listing |
+| `Backspace` | Navigate up one folder level |

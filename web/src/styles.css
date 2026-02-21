@@ -28,6 +28,12 @@
   --gcp-bg:      rgba(66, 133, 244, .1);
   --aws:         #d97706;
   --aws-bg:      rgba(217, 119, 6, .1);
+  --huawei:      #cf0a2c;
+  --huawei-bg:   rgba(207, 10, 44, .1);
+  --azure:       #0078d4;
+  --azure-bg:    rgba(0, 120, 212, .1);
+  --alibaba:     #ff6a00;
+  --alibaba-bg:  rgba(255, 106, 0, .1);
 
   --sidebar-w:   252px;
 
@@ -70,6 +76,9 @@
 
   --gcp-bg:      rgba(66, 133, 244, .14);
   --aws-bg:      rgba(217, 119, 6, .12);
+  --huawei-bg:   rgba(207, 10, 44, .14);
+  --azure-bg:    rgba(0, 120, 212, .14);
+  --alibaba-bg:  rgba(255, 106, 0, .14);
 
   --shadow-xs:   0 1px 2px rgba(0,0,0,.4);
   --shadow-sm:   0 4px 12px rgba(0,0,0,.35);
@@ -259,8 +268,52 @@ body {
   margin-top: 1px;
 }
 
-.conn-dot--gcp { background: var(--gcp); }
-.conn-dot--aws { background: var(--aws); }
+.conn-dot--gcp     { background: var(--gcp); }
+.conn-dot--aws     { background: var(--aws); }
+.conn-dot--huawei  { background: var(--huawei); }
+.conn-dot--azure   { background: var(--azure); }
+.conn-dot--alibaba { background: var(--alibaba); }
+
+/* ─── Sidebar conn-badge (replaces conn-dot) ──────────────────── */
+.conn-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.conn-badge--gcp     { background: var(--gcp-bg);     color: var(--gcp); }
+.conn-badge--aws     { background: var(--aws-bg);     color: var(--aws); }
+.conn-badge--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
+.conn-badge--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
+.conn-badge--azure   { background: var(--azure-bg);   color: var(--azure); }
+
+/* ─── Sidebar provider filter chips ──────────────────────────── */
+.prov-filter { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.prov-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--dur) var(--ease);
+}
+.prov-chip:hover { color: var(--text); border-color: var(--border-2); }
+
+.prov-chip--active.prov-chip--gcp     { background: var(--gcp-bg);     color: var(--gcp);     border-color: var(--gcp); }
+.prov-chip--active.prov-chip--aws     { background: var(--aws-bg);     color: var(--aws);     border-color: var(--aws); }
+.prov-chip--active.prov-chip--huawei  { background: var(--huawei-bg);  color: var(--huawei);  border-color: var(--huawei); }
+.prov-chip--active.prov-chip--alibaba { background: var(--alibaba-bg); color: var(--alibaba); border-color: var(--alibaba); }
+.prov-chip--active.prov-chip--azure   { background: var(--azure-bg);   color: var(--azure);   border-color: var(--azure); }
 
 .conn-item__body {
   flex: 1;
@@ -393,8 +446,9 @@ body {
 /* ─── Form view ───────────────────────────────────────────────── */
 .form-view {
   padding: 36px 40px;
-  max-width: 500px;
+  max-width: 580px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .form-view__hd {
@@ -414,40 +468,55 @@ body {
   margin-top: 4px;
 }
 
-/* Provider tabs */
-.provider-tabs {
-  display: flex;
-  gap: 3px;
-  padding: 3px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  margin-bottom: 22px;
+/* ─── Provider grid (form) ────────────────────────────────────── */
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 24px;
 }
 
-.provider-tab {
-  flex: 1;
-  display: inline-flex;
+.provider-card {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: var(--text-2);
-  font-size: 12px;
-  font-weight: 500;
-  font-family: inherit;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: var(--r);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
   cursor: pointer;
+  text-align: left;
+  font-family: inherit;
   transition: all var(--dur) var(--ease);
 }
+.provider-card:hover:not(:disabled) { background: var(--surface-2); border-color: var(--border-2); }
+.provider-card:disabled { opacity: 0.35; cursor: default; }
+.provider-card--active { opacity: 1 !important; cursor: pointer; }
 
-.provider-tab--active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-xs);
+.provider-card--active.provider-card--gcp     { border-color: var(--gcp);     background: var(--gcp-bg); }
+.provider-card--active.provider-card--aws     { border-color: var(--aws);     background: var(--aws-bg); }
+.provider-card--active.provider-card--huawei  { border-color: var(--huawei);  background: var(--huawei-bg); }
+.provider-card--active.provider-card--alibaba { border-color: var(--alibaba); background: var(--alibaba-bg); }
+.provider-card--active.provider-card--azure   { border-color: var(--azure);   background: var(--azure-bg); }
+
+.provider-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
+.provider-card__icon--gcp     { background: var(--gcp-bg);     color: var(--gcp); }
+.provider-card__icon--aws     { background: var(--aws-bg);     color: var(--aws); }
+.provider-card__icon--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
+.provider-card__icon--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
+.provider-card__icon--azure   { background: var(--azure-bg);   color: var(--azure); }
+
+.provider-card__info { display: flex; flex-direction: column; min-width: 0; }
+.provider-card__name { font-size: 12.5px; font-weight: 600; color: var(--text); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.provider-card__sub  { font-size: 10px;   color: var(--muted); display: block; margin-top: 1px; }
 
 /* Form groups */
 .form-group { display: flex; flex-direction: column; gap: 5px; }
@@ -590,8 +659,11 @@ body {
   font-weight: 600;
   letter-spacing: .4px;
 }
-.base-badge--gcp { background: var(--gcp-bg); color: var(--gcp); }
-.base-badge--aws { background: var(--aws-bg); color: var(--aws); }
+.base-badge--gcp     { background: var(--gcp-bg);     color: var(--gcp); }
+.base-badge--aws     { background: var(--aws-bg);     color: var(--aws); }
+.base-badge--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
+.base-badge--azure   { background: var(--azure-bg);   color: var(--azure); }
+.base-badge--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
 
 /* ─── Status Notice ───────────────────────────────────────────── */
 .status-notice {
@@ -670,8 +742,11 @@ body {
   font-weight: 700;
   flex-shrink: 0;
 }
-.browser-prov-icon--gcp { background: var(--gcp-bg); color: var(--gcp); }
-.browser-prov-icon--aws { background: var(--aws-bg); color: var(--aws); }
+.browser-prov-icon--gcp     { background: var(--gcp-bg);     color: var(--gcp); }
+.browser-prov-icon--aws     { background: var(--aws-bg);     color: var(--aws); }
+.browser-prov-icon--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
+.browser-prov-icon--azure   { background: var(--azure-bg);   color: var(--azure); }
+.browser-prov-icon--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
 
 .browser-conn-name {
   font-size: 14px;

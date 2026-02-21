@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to Anvesa Vestra. This guide explains how to set up a local development environment, understand the project structure, and follow the conventions used throughout the codebase.
+Thank you for your interest in contributing to Anveesa Vestra. This guide explains how to set up a local development environment, understand the project structure, and follow the conventions used throughout the codebase.
 
 ---
 
@@ -9,8 +9,8 @@ Thank you for your interest in contributing to Anvesa Vestra. This guide explain
 ### 1. Fork and Clone
 
 ```bash
-git clone https://github.com/your-org/anvesa-vestra.git
-cd anvesa-vestra
+git clone https://github.com/PandhuWibowo/anveesa-vestra.git
+cd anveesa-vestra
 ```
 
 ### 2. Install Dependencies
@@ -35,7 +35,7 @@ Both processes run in parallel. `make dev` waits for the backend to be ready on 
 ## Project Structure
 
 ```
-anvesa-vestra/
+anveesa-vestra/
 ├── server/
 │   ├── main.go              Route registration, server startup
 │   ├── go.mod               Go module definition
@@ -43,7 +43,10 @@ anvesa-vestra/
 │   │   └── db.go            SQLite init and schema migrations
 │   ├── handlers/
 │   │   ├── gcp.go           All GCS request handlers
-│   │   └── aws.go           All S3 request handlers
+│   │   ├── aws.go           All S3/R2/MinIO request handlers
+│   │   ├── huawei.go        All Huawei OBS request handlers
+│   │   ├── alibaba.go       All Alibaba Cloud OSS request handlers
+│   │   └── azure.go         All Azure Blob Storage request handlers
 │   └── middleware/
 │       └── cors.go          CORS headers middleware
 ├── web/
@@ -55,15 +58,16 @@ anvesa-vestra/
 │       ├── styles.css        Global CSS with custom property tokens
 │       ├── components/
 │       │   ├── layout/
-│       │   │   └── AppHeader.vue        Sidebar with connection list
+│       │   │   └── AppHeader.vue        Sidebar with connection list and provider filter chips
 │       │   ├── connections/
-│       │   │   ├── AddConnectionForm.vue  Create/edit connection form
+│       │   │   ├── AddConnectionForm.vue  Create/edit connection form (2-column provider grid)
 │       │   │   └── BucketBrowser.vue      Main file browser
 │       │   └── ui/
 │       │       ├── BaseButton.vue
 │       │       ├── BaseInput.vue
 │       │       ├── BaseModal.vue
-│       │       ├── BaseBadge.vue
+│       │       ├── BaseBadge.vue          Provider label badge (GCS / S3 / OBS / OSS / Azure)
+│       │       ├── ProviderIcon.vue       SVG icon for each cloud provider
 │       │       ├── SkeletonLoader.vue
 │       │       ├── StatusNotice.vue
 │       │       ├── ToastContainer.vue
@@ -82,14 +86,13 @@ anvesa-vestra/
 
 ### Adding a New Endpoint
 
-1. Write the handler function in the relevant file (`handlers/gcp.go` or `handlers/aws.go`).
+1. Write the handler function in the relevant file under `handlers/`.
 2. Register the route in `server/main.go`.
 3. Wrap the handler with `middleware.CORS(...)`.
 
 Handler signature:
 ```go
 func MyHandler(w http.ResponseWriter, r *http.Request) {
-    // Decode request body
     var req struct { ... }
     if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
         http.Error(w, `{"error":"invalid request"}`, http.StatusBadRequest)
@@ -98,7 +101,6 @@ func MyHandler(w http.ResponseWriter, r *http.Request) {
 
     // Do work...
 
-    // Respond
     w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(map[string]any{"ok": true})
 }
@@ -154,16 +156,27 @@ color: #1c1917;
 background: white;
 ```
 
-Light and dark mode are switched by toggling `data-theme="light"` on `:root`. The token block handles all theming — no JavaScript class toggling required.
+Provider brand colors are also available as tokens:
+
+```css
+--gcp:         #4285f4;   --gcp-bg:      rgba(66, 133, 244, .1);
+--aws:         #d97706;   --aws-bg:      rgba(217, 119, 6, .1);
+--huawei:      #cf0a2c;   --huawei-bg:   rgba(207, 10, 44, .1);
+--alibaba:     #ff6a00;   --alibaba-bg:  rgba(255, 106, 0, .1);
+--azure:       #0078d4;   --azure-bg:    rgba(0, 120, 212, .1);
+```
+
+Light and dark mode are switched by toggling `data-theme="light"` on `:root`.
 
 ### Adding a New Provider
 
 1. Create `server/handlers/myprovider.go` with the full set of handlers (test, CRUD connections, browse, upload, download, delete, copy, stats, metadata).
 2. Add a new table in `server/db/db.go`.
 3. Register routes in `server/main.go`.
-4. Add the provider tab to `AddConnectionForm.vue`.
+4. Add the provider card to the `PROVIDERS` array in `AddConnectionForm.vue`.
 5. Update `useConnections.js` to call the new endpoints.
-6. Add a provider dot color to `styles.css` (`.conn-dot--myprovider`).
+6. Add the provider SVG icon to `ProviderIcon.vue`.
+7. Add provider color tokens to `styles.css` (`:root` block and dark-mode overrides).
 
 ---
 

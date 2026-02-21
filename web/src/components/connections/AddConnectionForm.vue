@@ -7,71 +7,59 @@
       </p>
     </div>
 
-    <!-- Provider toggle (disabled in edit mode) -->
-    <div class="provider-tabs">
+    <!-- Provider grid (disabled in edit mode) -->
+    <div class="provider-grid">
       <button
-        class="provider-tab"
-        :class="{ 'provider-tab--active': provider === 'gcp' }"
-        :disabled="!!editConn"
-        @click="!editConn && (provider = 'gcp')"
+        v-for="p in PROVIDERS"
+        :key="p.id"
+        class="provider-card"
+        :class="[`provider-card--${p.id}`, { 'provider-card--active': provider === p.id }]"
+        :disabled="!!editConn && provider !== p.id"
+        @click="!editConn && (provider = p.id)"
       >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 15a4 4 0 0 0 4 4h9a5 5 0 0 0 1.8-9.7 6 6 0 0 0-11.8-1A4 4 0 0 0 3 15z"/>
-        </svg>
-        Google Cloud Storage
-      </button>
-      <button
-        class="provider-tab"
-        :class="{ 'provider-tab--active': provider === 'aws' }"
-        :disabled="!!editConn"
-        @click="!editConn && (provider = 'aws')"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-        </svg>
-        AWS S3
-      </button>
-      <button
-        class="provider-tab"
-        :class="{ 'provider-tab--active': provider === 'huawei' }"
-        :disabled="!!editConn"
-        @click="!editConn && (provider = 'huawei')"
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-        </svg>
-        Huawei OBS
+        <div class="provider-card__icon" :class="`provider-card__icon--${p.id}`">
+          <ProviderIcon :provider="p.id" :size="18" />
+        </div>
+        <div class="provider-card__info">
+          <span class="provider-card__name">{{ p.name }}</span>
+          <span class="provider-card__sub">{{ p.sub }}</span>
+        </div>
       </button>
     </div>
 
     <form @submit.prevent="handleSave" class="conn-form">
       <div class="form-group">
         <label class="form-label">Name</label>
-        <BaseInput v-model="form.name" placeholder="e.g. Production GCS" />
+        <BaseInput v-model="form.name" placeholder="e.g. Production Storage" />
       </div>
 
       <div class="form-group">
-        <label class="form-label">Bucket</label>
-        <BaseInput v-model="form.bucket" :placeholder="provider === 'gcp' ? 'my-bucket-name' : provider === 'huawei' ? 'my-obs-bucket' : 'my-s3-bucket'" />
+        <label class="form-label">{{ provider === 'azure' ? 'Container' : 'Bucket' }}</label>
+        <BaseInput v-model="form.bucket" :placeholder="bucketPlaceholder" />
       </div>
 
       <div class="form-group">
         <label class="form-label">
-          {{ provider === 'gcp' ? 'Service account JSON' : provider === 'huawei' ? 'OBS Credentials JSON' : 'Credentials JSON' }}
+          {{ credentialsLabel }}
           <span class="form-label-optional" v-if="provider === 'gcp'">(optional for public buckets)</span>
         </label>
         <textarea
           class="base-textarea"
           v-model="form.credentials"
           rows="6"
-          :placeholder="provider === 'gcp' ? gcpPlaceholder : provider === 'huawei' ? huaweiPlaceholder : awsPlaceholder"
+          :placeholder="credentialsPlaceholder"
         ></textarea>
         <p v-if="provider === 'gcp'" class="form-hint">
           Leave empty to connect to a publicly accessible GCS bucket.
         </p>
         <p v-else-if="provider === 'huawei'" class="form-hint">
           The <code style="font-family:var(--mono);font-size:11px">"endpoint"</code> field is required, e.g. <code style="font-family:var(--mono);font-size:11px">https://obs.cn-north-4.myhuaweicloud.com</code>.
+        </p>
+        <p v-else-if="provider === 'alibaba'" class="form-hint">
+          The <code style="font-family:var(--mono);font-size:11px">"endpoint"</code> field is required, e.g. <code style="font-family:var(--mono);font-size:11px">https://oss-cn-hangzhou.aliyuncs.com</code>.
+        </p>
+        <p v-else-if="provider === 'azure'" class="form-hint">
+          "Container" is the Azure Blob container name. The <code style="font-family:var(--mono);font-size:11px">"account_key"</code> is the base64 key from the Azure portal → Storage account → Access keys.
         </p>
         <p v-else class="form-hint">
           For Cloudflare R2 or MinIO, include an <code style="font-family:var(--mono);font-size:11px">"endpoint"</code> key pointing to your custom S3-compatible URL.
@@ -94,10 +82,19 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import BaseInput    from '../ui/BaseInput.vue'
 import BaseButton   from '../ui/BaseButton.vue'
 import StatusNotice from '../ui/StatusNotice.vue'
+import ProviderIcon from '../ui/ProviderIcon.vue'
+
+const PROVIDERS = [
+  { id: 'gcp',     name: 'Google Cloud Storage', sub: 'GCS' },
+  { id: 'aws',     name: 'AWS S3',                sub: 'S3 · R2 · MinIO' },
+  { id: 'huawei',  name: 'Huawei OBS',            sub: 'Object Storage' },
+  { id: 'alibaba', name: 'Alibaba Cloud OSS',     sub: 'Object Storage' },
+  { id: 'azure',   name: 'Azure Blob Storage',    sub: 'Blob Storage' },
+]
 
 const props = defineProps({
   testing:  { type: Boolean, default: false },
@@ -126,9 +123,35 @@ watch(() => props.editConn, conn => {
   }
 })
 
-const gcpPlaceholder    = `{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}`
-const awsPlaceholder    = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "region": "us-east-1",\n  "endpoint": "https://...r2.cloudflarestorage.com"  ← optional, for R2/MinIO\n}`
-const huaweiPlaceholder = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "endpoint": "https://obs.cn-north-4.myhuaweicloud.com",\n  "region": "cn-north-4"\n}`
+const bucketPlaceholder = computed(() => {
+  if (provider.value === 'gcp')     return 'my-bucket-name'
+  if (provider.value === 'huawei')  return 'my-obs-bucket'
+  if (provider.value === 'alibaba') return 'my-oss-bucket'
+  if (provider.value === 'azure')   return 'my-container'
+  return 'my-s3-bucket'
+})
+
+const credentialsLabel = computed(() => {
+  if (provider.value === 'gcp')     return 'Service account JSON'
+  if (provider.value === 'huawei')  return 'OBS Credentials JSON'
+  if (provider.value === 'alibaba') return 'OSS Credentials JSON'
+  if (provider.value === 'azure')   return 'Azure Credentials JSON'
+  return 'Credentials JSON'
+})
+
+const gcpPlaceholder     = `{\n  "type": "service_account",\n  "project_id": "...",\n  ...\n}`
+const awsPlaceholder     = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "region": "us-east-1",\n  "endpoint": "https://...r2.cloudflarestorage.com"  ← optional, for R2/MinIO\n}`
+const huaweiPlaceholder  = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "endpoint": "https://obs.cn-north-4.myhuaweicloud.com",\n  "region": "cn-north-4"\n}`
+const alibabaPlaceholder = `{\n  "access_key_id": "...",\n  "secret_access_key": "...",\n  "endpoint": "https://oss-cn-hangzhou.aliyuncs.com",\n  "region": "cn-hangzhou"\n}`
+const azurePlaceholder   = `{\n  "account_name": "mystorageaccount",\n  "account_key": "base64key=="\n}`
+
+const credentialsPlaceholder = computed(() => {
+  if (provider.value === 'gcp')     return gcpPlaceholder
+  if (provider.value === 'huawei')  return huaweiPlaceholder
+  if (provider.value === 'alibaba') return alibabaPlaceholder
+  if (provider.value === 'azure')   return azurePlaceholder
+  return awsPlaceholder
+})
 
 function handleTest() {
   emit('test', provider.value, form.value.bucket, form.value.credentials)

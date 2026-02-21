@@ -1,6 +1,6 @@
 # Deployment
 
-Anvesa Vestra can be deployed in two ways: as a **Docker container** (recommended — no toolchain required) or as a **native binary** built from source.
+Anveesa Vestra can be deployed in two ways: as a **Docker container** (recommended — no toolchain required) or as a **native binary** built from source.
 
 ---
 
@@ -103,7 +103,7 @@ This command:
 1. Compiles the Go backend to `bin/server`
 2. Runs `bun run build` in `web/` to produce `web/dist/`
 
-The resulting `bin/server` binary is self-contained for the backend. Copy it alongside the `web/dist/` folder (or embed the dist files in the binary — see below).
+The resulting `bin/server` binary is self-contained for the backend. Copy it alongside the `web/dist/` folder.
 
 ---
 
@@ -115,15 +115,13 @@ The resulting `bin/server` binary is self-contained for the backend. Copy it alo
 
 The server listens on port **8080** by default. The SQLite database is created as `server/data.db` relative to the working directory on first run.
 
-> Set the `PORT` environment variable to change the listening port if your environment requires it (you may need to add this support to `main.go` — see [Contributing](./contributing.md)).
-
 ---
 
 ### Serving the Frontend
 
 In development the Vite dev server proxies API requests. In production you have two options:
 
-### Option A — Reverse Proxy (Recommended)
+#### Option A — Reverse Proxy (Recommended)
 
 Run Nginx (or Caddy) in front of the Go server:
 
@@ -133,7 +131,7 @@ server {
     server_name storage.example.com;
 
     # Serve built frontend
-    root /var/www/anvesa-vestra/web/dist;
+    root /var/www/anveesa-vestra/web/dist;
     index index.html;
 
     # API — proxy to Go backend
@@ -150,9 +148,9 @@ server {
 }
 ```
 
-Copy `web/dist/` to `/var/www/anvesa-vestra/web/dist/` after each build.
+Copy `web/dist/` to `/var/www/anveesa-vestra/web/dist/` after each build.
 
-### Option B — Serve from Go (Embedded)
+#### Option B — Serve from Go (Embedded)
 
 Embed the `web/dist/` directory into the binary using Go's `embed` package. Add the following to `server/main.go`:
 
@@ -171,20 +169,20 @@ This packages everything into one binary — no separate static file deployment 
 
 ### Running as a System Service
 
-### systemd (Linux)
+#### systemd (Linux)
 
-Create `/etc/systemd/system/anvesa-vestra.service`:
+Create `/etc/systemd/system/anveesa-vestra.service`:
 
 ```ini
 [Unit]
-Description=Anvesa Vestra Cloud Storage Manager
+Description=Anveesa Vestra Cloud Storage Manager
 After=network.target
 
 [Service]
 Type=simple
 User=www-data
-WorkingDirectory=/opt/anvesa-vestra
-ExecStart=/opt/anvesa-vestra/bin/server
+WorkingDirectory=/opt/anveesa-vestra
+ExecStart=/opt/anveesa-vestra/bin/server
 Restart=on-failure
 RestartSec=5
 
@@ -196,13 +194,13 @@ Enable and start:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable anvesa-vestra
-sudo systemctl start anvesa-vestra
+sudo systemctl enable anveesa-vestra
+sudo systemctl start anveesa-vestra
 ```
 
-### macOS launchd
+#### macOS launchd
 
-Create `~/Library/LaunchAgents/com.anvesa.vestra.plist`:
+Create `~/Library/LaunchAgents/com.anveesa.vestra.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -211,13 +209,13 @@ Create `~/Library/LaunchAgents/com.anvesa.vestra.plist`:
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>com.anvesa.vestra</string>
+  <string>com.anveesa.vestra</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/opt/anvesa-vestra/bin/server</string>
+    <string>/opt/anveesa-vestra/bin/server</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>/opt/anvesa-vestra</string>
+  <string>/opt/anveesa-vestra</string>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
@@ -227,7 +225,7 @@ Create `~/Library/LaunchAgents/com.anvesa.vestra.plist`:
 ```
 
 ```bash
-launchctl load ~/Library/LaunchAgents/com.anvesa.vestra.plist
+launchctl load ~/Library/LaunchAgents/com.anveesa.vestra.plist
 ```
 
 ---

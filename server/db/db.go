@@ -47,5 +47,27 @@ func createTables() error {
 			credentials TEXT NOT NULL,
 			created_at  DATETIME NOT NULL
 		)`)
+	if err != nil {
+		return err
+	}
+	_, err = DB.Exec(`
+		CREATE TABLE IF NOT EXISTS alibaba_connections (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			name        TEXT NOT NULL,
+			bucket      TEXT NOT NULL,
+			credentials TEXT NOT NULL,
+			created_at  DATETIME NOT NULL
+		)`)
+	if err != nil {
+		return err
+	}
+	_, err = DB.Exec(`
+		CREATE TABLE IF NOT EXISTS azure_connections (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			name        TEXT NOT NULL,
+			bucket      TEXT NOT NULL,
+			credentials TEXT NOT NULL,
+			created_at  DATETIME NOT NULL
+		)`)
 	return err
 }
