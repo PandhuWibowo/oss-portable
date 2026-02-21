@@ -1,13 +1,18 @@
 # ── Stage 1: Build Vue frontend ───────────────────────────────────────────────
 FROM oven/bun:1-alpine AS frontend-builder
 
-WORKDIR /app/web
+# Use /app so that the relative import ../../../../docs/ in DocsViewer.vue
+# resolves correctly to /app/docs/ at build time.
+WORKDIR /app
 
-COPY web/package.json web/bun.lock ./
-RUN bun install --frozen-lockfile
+COPY web/package.json web/bun.lock ./web/
+RUN cd web && bun install --frozen-lockfile
 
-COPY web/ ./
-RUN bun run build
+# Copy both web source and docs (bundled as static imports at build time)
+COPY web/ ./web/
+COPY docs/ ./docs/
+
+RUN cd web && bun run build
 
 # ── Stage 2: Build Go server ──────────────────────────────────────────────────
 FROM golang:1.23-alpine AS backend-builder
