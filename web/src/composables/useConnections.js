@@ -16,6 +16,7 @@ export function useConnections() {
     huawei:  '/api/huawei',
     alibaba: '/api/alibaba',
     azure:   '/api/azure',
+    gdrive:  '/api/gdrive',
   }
 
   // ── connection list ──────────────────────────────────────────
@@ -24,19 +25,21 @@ export function useConnections() {
     loading.value = true
     clearMessages()
     try {
-      const [gcpRes, awsRes, huaweiRes, alibabaRes, azureRes] = await Promise.all([
+      const [gcpRes, awsRes, huaweiRes, alibabaRes, azureRes, gdriveRes] = await Promise.all([
         fetch('/api/gcp/connections').then(r => r.ok ? r.json() : []),
         fetch('/api/aws/connections').then(r => r.ok ? r.json() : []),
         fetch('/api/huawei/connections').then(r => r.ok ? r.json() : []),
         fetch('/api/alibaba/connections').then(r => r.ok ? r.json() : []),
         fetch('/api/azure/connections').then(r => r.ok ? r.json() : []),
+        fetch('/api/gdrive/connections').then(r => r.ok ? r.json() : []),
       ])
       const gcpList     = (gcpRes     || []).map(c => ({ ...c, provider: 'gcp' }))
       const awsList     = (awsRes     || []).map(c => ({ ...c, provider: 'aws' }))
       const huaweiList  = (huaweiRes  || []).map(c => ({ ...c, provider: 'huawei' }))
       const alibabaList = (alibabaRes || []).map(c => ({ ...c, provider: 'alibaba' }))
       const azureList   = (azureRes   || []).map(c => ({ ...c, provider: 'azure' }))
-      connections.value = [...gcpList, ...awsList, ...huaweiList, ...alibabaList, ...azureList]
+      const gdriveList  = (gdriveRes  || []).map(c => ({ ...c, provider: 'gdrive' }))
+      connections.value = [...gcpList, ...awsList, ...huaweiList, ...alibabaList, ...azureList, ...gdriveList]
     } catch (err) {
       error.value = 'Failed to load connections.'
     } finally {

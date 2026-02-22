@@ -672,6 +672,8 @@ function copyPath(entry) {
     ? `gs://${props.conn.bucket}/${entry.name}`
     : props.conn.provider === 'azure'
     ? `az://${props.conn.bucket}/${entry.name}`
+    : props.conn.provider === 'gdrive'
+    ? `gdrive://${props.conn.bucket}/${entry.name}`
     : `s3://${props.conn.bucket}/${entry.name}`
   navigator.clipboard?.writeText(path).then(
     () => toast.success('Path copied to clipboard'),

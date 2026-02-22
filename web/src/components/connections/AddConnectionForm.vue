@@ -34,7 +34,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">{{ provider === 'azure' ? 'Container' : 'Bucket' }}</label>
+        <label class="form-label">{{ provider === 'azure' ? 'Container' : provider === 'gdrive' ? 'Folder ID' : 'Bucket' }}</label>
         <BaseInput v-model="form.bucket" :placeholder="bucketPlaceholder" />
       </div>
 
@@ -60,6 +60,9 @@
         </p>
         <p v-else-if="provider === 'azure'" class="form-hint">
           "Container" is the Azure Blob container name. The <code style="font-family:var(--mono);font-size:11px">"account_key"</code> is the base64 key from the Azure portal → Storage account → Access keys.
+        </p>
+        <p v-else-if="provider === 'gdrive'" class="form-hint">
+          Enter the Google Drive <strong>Folder ID</strong> from the URL (e.g. <code style="font-family:var(--mono);font-size:11px">1A2B3C...</code>). Share the folder with the service account email.
         </p>
         <p v-else class="form-hint">
           For Cloudflare R2 or MinIO, include an <code style="font-family:var(--mono);font-size:11px">"endpoint"</code> key pointing to your custom S3-compatible URL.
@@ -91,6 +94,7 @@ import ProviderIcon from '../ui/ProviderIcon.vue'
 const PROVIDERS = [
   { id: 'gcp',     name: 'Google Cloud Storage', sub: 'GCS' },
   { id: 'aws',     name: 'AWS S3',                sub: 'S3 · R2 · MinIO' },
+  { id: 'gdrive',  name: 'Google Drive',          sub: 'Drive API v3' },
   { id: 'huawei',  name: 'Huawei OBS',            sub: 'Object Storage' },
   { id: 'alibaba', name: 'Alibaba Cloud OSS',     sub: 'Object Storage' },
   { id: 'azure',   name: 'Azure Blob Storage',    sub: 'Blob Storage' },
@@ -125,6 +129,7 @@ watch(() => props.editConn, conn => {
 
 const bucketPlaceholder = computed(() => {
   if (provider.value === 'gcp')     return 'my-bucket-name'
+  if (provider.value === 'gdrive')  return '1A2B3C_folderIdFromURL'
   if (provider.value === 'huawei')  return 'my-obs-bucket'
   if (provider.value === 'alibaba') return 'my-oss-bucket'
   if (provider.value === 'azure')   return 'my-container'
@@ -133,6 +138,7 @@ const bucketPlaceholder = computed(() => {
 
 const credentialsLabel = computed(() => {
   if (provider.value === 'gcp')     return 'Service account JSON'
+  if (provider.value === 'gdrive')  return 'Service Account JSON'
   if (provider.value === 'huawei')  return 'OBS Credentials JSON'
   if (provider.value === 'alibaba') return 'OSS Credentials JSON'
   if (provider.value === 'azure')   return 'Azure Credentials JSON'
@@ -147,6 +153,7 @@ const azurePlaceholder   = `{\n  "account_name": "mystorageaccount",\n  "account
 
 const credentialsPlaceholder = computed(() => {
   if (provider.value === 'gcp')     return gcpPlaceholder
+  if (provider.value === 'gdrive')  return gcpPlaceholder
   if (provider.value === 'huawei')  return huaweiPlaceholder
   if (provider.value === 'alibaba') return alibabaPlaceholder
   if (provider.value === 'azure')   return azurePlaceholder

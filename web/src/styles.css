@@ -34,6 +34,8 @@
   --azure-bg:    rgba(0, 120, 212, .1);
   --alibaba:     #ff6a00;
   --alibaba-bg:  rgba(255, 106, 0, .1);
+  --gdrive:      #4285F4;
+  --gdrive-bg:   rgba(66, 133, 244, .1);
 
   --sidebar-w:   252px;
 
@@ -79,6 +81,7 @@
   --huawei-bg:   rgba(207, 10, 44, .14);
   --azure-bg:    rgba(0, 120, 212, .14);
   --alibaba-bg:  rgba(255, 106, 0, .14);
+  --gdrive-bg:   rgba(66, 133, 244, .14);
 
   --shadow-xs:   0 1px 2px rgba(0,0,0,.4);
   --shadow-sm:   0 4px 12px rgba(0,0,0,.35);
@@ -273,6 +276,7 @@ body {
 .conn-dot--huawei  { background: var(--huawei); }
 .conn-dot--azure   { background: var(--azure); }
 .conn-dot--alibaba { background: var(--alibaba); }
+.conn-dot--gdrive  { background: var(--gdrive); }
 
 /* ─── Sidebar conn-badge (replaces conn-dot) ──────────────────── */
 .conn-badge {
@@ -289,6 +293,7 @@ body {
 .conn-badge--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
 .conn-badge--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
 .conn-badge--azure   { background: var(--azure-bg);   color: var(--azure); }
+.conn-badge--gdrive  { background: var(--gdrive-bg);  color: var(--gdrive); }
 
 /* ─── Sidebar provider filter chips ──────────────────────────── */
 .prov-filter { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
@@ -314,6 +319,7 @@ body {
 .prov-chip--active.prov-chip--huawei  { background: var(--huawei-bg);  color: var(--huawei);  border-color: var(--huawei); }
 .prov-chip--active.prov-chip--alibaba { background: var(--alibaba-bg); color: var(--alibaba); border-color: var(--alibaba); }
 .prov-chip--active.prov-chip--azure   { background: var(--azure-bg);   color: var(--azure);   border-color: var(--azure); }
+.prov-chip--active.prov-chip--gdrive  { background: var(--gdrive-bg);  color: var(--gdrive);  border-color: var(--gdrive); }
 
 .conn-item__body {
   flex: 1;
@@ -498,6 +504,7 @@ body {
 .provider-card--active.provider-card--huawei  { border-color: var(--huawei);  background: var(--huawei-bg); }
 .provider-card--active.provider-card--alibaba { border-color: var(--alibaba); background: var(--alibaba-bg); }
 .provider-card--active.provider-card--azure   { border-color: var(--azure);   background: var(--azure-bg); }
+.provider-card--active.provider-card--gdrive  { border-color: var(--gdrive);  background: var(--gdrive-bg); }
 
 .provider-card__icon {
   width: 32px;
@@ -513,6 +520,7 @@ body {
 .provider-card__icon--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
 .provider-card__icon--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
 .provider-card__icon--azure   { background: var(--azure-bg);   color: var(--azure); }
+.provider-card__icon--gdrive  { background: var(--gdrive-bg);  color: var(--gdrive); }
 
 .provider-card__info { display: flex; flex-direction: column; min-width: 0; }
 .provider-card__name { font-size: 12.5px; font-weight: 600; color: var(--text); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -664,6 +672,7 @@ body {
 .base-badge--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
 .base-badge--azure   { background: var(--azure-bg);   color: var(--azure); }
 .base-badge--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
+.base-badge--gdrive  { background: var(--gdrive-bg);  color: var(--gdrive); }
 
 /* ─── Status Notice ───────────────────────────────────────────── */
 .status-notice {
@@ -747,6 +756,7 @@ body {
 .browser-prov-icon--huawei  { background: var(--huawei-bg);  color: var(--huawei); }
 .browser-prov-icon--azure   { background: var(--azure-bg);   color: var(--azure); }
 .browser-prov-icon--alibaba { background: var(--alibaba-bg); color: var(--alibaba); }
+.browser-prov-icon--gdrive  { background: var(--gdrive-bg);  color: var(--gdrive); }
 
 .browser-conn-name {
   font-size: 14px;

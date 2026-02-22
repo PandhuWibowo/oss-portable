@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Anvesa Vestra** is a self-hosted, open-source cloud storage manager. It provides a single web interface to browse, upload, download, rename, and manage files across multiple cloud providers: Google Cloud Storage, Amazon S3 (including Cloudflare R2 and MinIO), Azure Blob Storage, Alibaba Cloud OSS, and Huawei OBS.
+**Anvesa Vestra** is a self-hosted, open-source cloud storage manager. It provides a single web interface to browse, upload, download, rename, and manage files across multiple cloud providers: Google Cloud Storage, Amazon S3 (including Cloudflare R2 and MinIO), Azure Blob Storage, Alibaba Cloud OSS, Huawei OBS, and Google Drive.
 
 Repository: `github.com/PandhuWibowo/oss-portable`
 
@@ -13,7 +13,7 @@ Repository: `github.com/PandhuWibowo/oss-portable`
 | Layer           | Technology                                      |
 | --------------- | ----------------------------------------------- |
 | Backend         | Go 1.24, `net/http` (no framework)              |
-| Storage SDKs    | `cloud.google.com/go/storage`, `aws-sdk-go-v2`, Azure SDK, Alibaba OSS, Huawei OBS |
+| Storage SDKs    | `cloud.google.com/go/storage`, `aws-sdk-go-v2`, Azure SDK, Alibaba OSS, Huawei OBS, Google Drive API v3 |
 | Database        | SQLite via `modernc.org/sqlite` (pure Go, no CGO) |
 | Frontend        | Vue 3 (Composition API), Naive UI component library |
 | Build Tool      | Vite 5                                          |
@@ -34,6 +34,7 @@ anveesa-oss/
 │   │   ├── azure.go         # Azure Blob Storage
 │   │   ├── alibaba.go       # Alibaba Cloud OSS
 │   │   ├── huawei.go        # Huawei OBS
+│   │   ├── gdrive.go        # Google Drive
 │   │   └── docs.go          # Documentation endpoint
 │   ├── db/
 │   │   └── db.go            # SQLite database setup
