@@ -101,6 +101,23 @@ func main() {
 	mux.HandleFunc("/api/azure/bucket/metadata",        middleware.CORS(handlers.GetAzureMetadata))
 	mux.HandleFunc("/api/azure/bucket/metadata/update", middleware.CORS(handlers.UpdateAzureMetadata))
 
+	// ── Google Drive connections ──────────────────────────────────
+	mux.HandleFunc("/api/gdrive/connections",  middleware.CORS(handlers.ListGDrive))
+	mux.HandleFunc("/api/gdrive/connection",   middleware.CORS(handlers.CreateGDrive))
+	mux.HandleFunc("/api/gdrive/connection/",  middleware.CORS(handlers.GDriveConnByID))
+	mux.HandleFunc("/api/gdrive/test",         middleware.CORS(handlers.TestGDrive))
+
+	// ── Google Drive file operations ──────────────────────────────
+	mux.HandleFunc("/api/gdrive/bucket/browse",          middleware.CORS(handlers.BrowseGDriveBucket))
+	mux.HandleFunc("/api/gdrive/bucket/objects",         middleware.CORS(handlers.ListGDriveObjects))
+	mux.HandleFunc("/api/gdrive/bucket/download",        middleware.CORS(handlers.GDriveDownloadURL))
+	mux.HandleFunc("/api/gdrive/bucket/delete",          middleware.CORS(handlers.DeleteGDriveObject))
+	mux.HandleFunc("/api/gdrive/bucket/copy",            middleware.CORS(handlers.CopyGDriveObject))
+	mux.HandleFunc("/api/gdrive/bucket/upload",          middleware.CORS(handlers.UploadGDriveObject))
+	mux.HandleFunc("/api/gdrive/bucket/stats",           middleware.CORS(handlers.GDriveBucketStats))
+	mux.HandleFunc("/api/gdrive/bucket/metadata",        middleware.CORS(handlers.GetGDriveMetadata))
+	mux.HandleFunc("/api/gdrive/bucket/metadata/update", middleware.CORS(handlers.UpdateGDriveMetadata))
+
 	// ── Docs ──────────────────────────────────────────────────────
 	mux.HandleFunc("/api/docs/", middleware.CORS(handlers.ServeDocs))
 

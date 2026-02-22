@@ -9,3 +9,4 @@ server/data.db
 *.exe
 *.tmp
 bin/
+_prompts/
